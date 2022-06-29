@@ -91,11 +91,6 @@ func (e *Executor) RunJob(ctx context.Context, j *executor.Job) (string, error) 
 	ctx, span := newSpan(ctx, "RunJob")
 	defer span.End()
 
-	spec := j.Spec
-	if spec == nil {
-		return "", fmt.Errorf("no job spec provided to docker executor")
-	}
-
 	jobResultsDir, err := e.ensureJobResultsDir(j)
 	if err != nil {
 		return "", err

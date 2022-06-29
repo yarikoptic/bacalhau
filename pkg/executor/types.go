@@ -27,12 +27,12 @@ type Executor interface {
 type Job struct {
 	ID string `json:"id"`
 	// the client node that "owns" this job (as in who submitted it)
-	Owner string   `json:"owner"`
-	Spec  *JobSpec `json:"spec"`
-	Deal  *JobDeal `json:"deal"`
+	Owner string  `json:"owner"`
+	Spec  JobSpec `json:"spec"`
+	Deal  JobDeal `json:"deal"`
 	// a map of nodeID -> state of the job on that node
-	State     map[string]*JobState `json:"state"`
-	CreatedAt time.Time            `json:"created_at"`
+	State     map[string]JobState `json:"state"`
+	CreatedAt time.Time           `json:"created_at"`
 }
 
 // JobSpec is a complete specification of a job that can be run on some
@@ -105,10 +105,10 @@ type JobEvent struct {
 	NodeID    string       `json:"node_id"`
 	EventName JobEventType `json:"event_name"`
 	// this is only defined in "create" events
-	JobSpec *JobSpec `json:"job_spec"`
+	JobSpec JobSpec `json:"job_spec"`
 	// this is only defined in "update_deal" events
-	JobDeal *JobDeal `json:"job_deal"`
+	JobDeal JobDeal `json:"job_deal"`
 	// most other events are a case of a client<->node state change
-	JobState  *JobState `json:"job_state"`
+	JobState  JobState  `json:"job_state"`
 	EventTime time.Time `json:"event_time"`
 }

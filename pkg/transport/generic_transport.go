@@ -73,9 +73,9 @@ func (gt *GenericTransport) BroadcastEvent(ctx context.Context, event *executor.
 		gt.jobs[event.JobID] = &executor.Job{
 			ID:        event.JobID,
 			Owner:     event.NodeID,
-			Spec:      nil,
-			Deal:      nil,
-			State:     make(map[string]*executor.JobState),
+			Spec:      executor.JobSpec{},
+			Deal:      executor.JobDeal{},
+			State:     make(map[string]executor.JobState),
 			CreatedAt: time.Now(),
 		}
 	}
