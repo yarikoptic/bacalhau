@@ -77,7 +77,7 @@ func TestSelectAllJobs(t *testing.T) {
 			policy:          computenode.NewDefaultJobSelectionPolicy(),
 			nodeCount:       3,
 			addFilesCount:   1,
-			expectedAccepts: 3,
+			expectedAccepts: 1,
 		},
 
 		// check we get only 2 when we've only added data to 2
