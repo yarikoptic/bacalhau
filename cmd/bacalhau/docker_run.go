@@ -186,7 +186,7 @@ func WaitForJobAllHaveState(nodeIDs []string, states ...executor.JobStateType) C
 	}
 }
 
-func WaitForJobThrowErrors(job executor.Job, errorStates []executor.JobStateType) CheckJobStatesFunction {
+func WaitForJobThrowErrors(job executor.Job, errorStates []executor.JobStateType) CheckJobStatesFunction { // nolint:gochecknoinits
 	return func(jobStates map[string]executor.JobStateType) (bool, error) {
 		var Status string
 		for _, status := range jobStates {
@@ -218,7 +218,7 @@ func WaitForJobThrowErrors(job executor.Job, errorStates []executor.JobStateType
 	}
 }
 
-func Get(jobID string, timeout int) map[string]bool {
+func Get(jobID string, timeout int) map[string]bool { // nolint:gochecknoinits
 	cm := system.NewCleanupManager()
 	defer cm.Cleanup()
 
