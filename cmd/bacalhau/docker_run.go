@@ -72,9 +72,7 @@ func WaitForJobWithLogs(
 			// sleep till states are there
 
 			for states, err := GetJobStates(ctx, jobID); len(states) == 0; {
-				// states, err := GetJobStates(ctx, jobID)
 				time.Sleep(time.Second * 5) //nolint: gomnd
-				// states, err := GetJobStates(ctx, jobID)
 				if err != nil {
 					fmt.Printf("error is : %v", err)
 				}
@@ -102,9 +100,7 @@ func WaitForJobWithLogs(
 			}
 
 			allOk := true
-			// fmt.Printf("Waiter %#v\n", states)
-			// fmt.Printf("Waiter %#v\n", checkJobStateFunctions)
-			// fmt.Printf("Waiter States %#v\n", states)
+
 			for _, checkFunction := range checkJobStateFunctions {
 				stepOk, err := checkFunction(states)
 				if err != nil {
@@ -202,16 +198,13 @@ func WaitForJobThrowErrors(job executor.Job, errorStates []executor.JobStateType
 				Status = WaitingStatus
 			}
 		}
-		// fmt.Printf("\nStatus %s\n", Status)
 		if Status == CompleteStatus {
 			return true, nil
 		}
 		if Status != CompleteStatus {
 			log.Trace().Msgf("WaitForJobThrowErrors:\nerrorStates = %+v,\njobStates = %+v", errorStates, jobStates)
-			// fmt.Printf("WaitForJobThrowErrors:\nerrorStates = %+v,\njobStates = %+v", errorStates, jobStates)
-			// fmt.Printf("\nStatus:%s\n", Status)
+
 			for id, state := range jobStates {
-				// fmt.Printf("WaitForJobThrowErrors loop: %#v\n %#v\n ", state, state.String())
 				if state.String() == CompleteStatus {
 					break
 				}
