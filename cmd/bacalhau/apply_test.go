@@ -2,15 +2,19 @@ package bacalhau
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/url"
 	"strings"
 	"testing"
 
+	"github.com/filecoin-project/bacalhau/pkg/computenode"
 	"github.com/filecoin-project/bacalhau/pkg/publicapi"
 	"github.com/filecoin-project/bacalhau/pkg/system"
+	"github.com/filecoin-project/bacalhau/pkg/test/devstack"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -103,6 +107,44 @@ func (suite *ApplySuite) TestApplyYAML_GenericSubmit() {
 				job, _, err := c.Get(ctx, strings.TrimSpace(out))
 				assert.NoError(suite.T(), err)
 				assert.NotNil(suite.T(), job, "Failed to get job with ID: %s", out)
+			}()
+		}
+	}
+}
+
+func (suite *ApplySuite) TestApplyYAML_GenericSubmitWait() {
+	tests := []struct {
+		numberOfJobs int
+	}{
+		{numberOfJobs: 1}, // Test for one
+	}
+
+	for i, tc := range tests {
+
+		testFiles := []string{"../../testdata/job-wait.yaml"}
+
+		for _, testFile := range testFiles {
+			func() {
+				ctx := context.Background()
+				devstack, cm := devstack.SetupTest(suite.T(), 1, 0, computenode.ComputeNodeConfig{})
+				defer cm.Cleanup()
+
+				swarmAddresses, err := devstack.Nodes[0].IpfsNode.SwarmAddresses()
+				require.NoError(suite.T(), err)
+				getCmdFlags.ipfsSwarmAddrs = strings.Join(swarmAddresses, ",")
+
+				_, out, err := ExecuteTestCobraCommand(suite.T(), suite.rootCmd, "apply",
+					"--api-host", devstack.Nodes[0].APIServer.Host,
+					"--api-port", fmt.Sprintf("%d", devstack.Nodes[0].APIServer.Port),
+					"--wait",
+					"-f", testFile,
+				)
+				require.NoError(suite.T(), err, "Error submitting job. Run - Number of Jobs: %d. Job number: %d", tc.numberOfJobs, i)
+
+				client := publicapi.NewAPIClient(devstack.Nodes[0].APIServer.GetURI())
+				job, _, err := client.Get(ctx, strings.TrimSpace(out))
+				require.NoError(suite.T(), err)
+				require.NotNil(suite.T(), job, "Failed to get job with ID: %s", out)
 			}()
 		}
 	}

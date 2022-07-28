@@ -21,6 +21,8 @@ import (
 )
 
 const CompleteStatus = "Complete"
+const RunningStatus = "Running"
+const WaitingStatus = "Waiting"
 
 var jobEngine string
 var jobVerifier string
@@ -68,9 +70,11 @@ func WaitForJobWithLogs(
 		Delay:       time.Second * 1,
 		Handler: func() (bool, error) {
 			// sleep till states are there
-			for {
+
+			for states, err := GetJobStates(ctx, jobID); len(states) == 0; {
+				// states, err := GetJobStates(ctx, jobID)
 				time.Sleep(time.Second * 5) //nolint: gomnd
-				states, err := GetJobStates(ctx, jobID)
+				// states, err := GetJobStates(ctx, jobID)
 				if err != nil {
 					fmt.Printf("error is : %v", err)
 				}
@@ -98,9 +102,9 @@ func WaitForJobWithLogs(
 			}
 
 			allOk := true
-			fmt.Printf("Waiter %#v\n", states)
-			fmt.Printf("Waiter %#v\n", checkJobStateFunctions)
-			fmt.Printf("Waiter States %#v\n", states)
+			// fmt.Printf("Waiter %#v\n", states)
+			// fmt.Printf("Waiter %#v\n", checkJobStateFunctions)
+			// fmt.Printf("Waiter States %#v\n", states)
 			for _, checkFunction := range checkJobStateFunctions {
 				stepOk, err := checkFunction(states)
 				if err != nil {
@@ -117,8 +121,8 @@ func WaitForJobWithLogs(
 
 			for _, state := range states {
 				terminate := !state.IsTerminal() || allTerminal
-				fmt.Print(terminate, finalJobState.Status)
 				if Status == CompleteStatus {
+					fmt.Print(terminate, finalJobState.Status)
 					return allOk, nil
 				}
 				if allTerminal {
@@ -192,21 +196,26 @@ func WaitForJobThrowErrors(job executor.Job, errorStates []executor.JobStateType
 		for _, status := range jobStates {
 			if status.String() == CompleteStatus {
 				Status = CompleteStatus
+			} else if status.String() == RunningStatus {
+				Status = RunningStatus
+			} else if status.String() == WaitingStatus {
+				Status = WaitingStatus
 			}
 		}
-		fmt.Printf("\nStatus %s\n", Status)
+		// fmt.Printf("\nStatus %s\n", Status)
 		if Status == CompleteStatus {
 			return true, nil
 		}
 		if Status != CompleteStatus {
 			log.Trace().Msgf("WaitForJobThrowErrors:\nerrorStates = %+v,\njobStates = %+v", errorStates, jobStates)
-			fmt.Printf("WaitForJobThrowErrors:\nerrorStates = %+v,\njobStates = %+v", errorStates, jobStates)
+			// fmt.Printf("WaitForJobThrowErrors:\nerrorStates = %+v,\njobStates = %+v", errorStates, jobStates)
+			// fmt.Printf("\nStatus:%s\n", Status)
 			for id, state := range jobStates {
-				fmt.Printf("WaitForJobThrowErrors loop: %#v\n %#v\n ", state, state.String())
+				// fmt.Printf("WaitForJobThrowErrors loop: %#v\n %#v\n ", state, state.String())
 				if state.String() == CompleteStatus {
 					break
 				}
-				if system.StringArrayContains(system.GetJobStateStringArray(errorStates), state.String()) && state.String() != "BidRejected" {
+				if system.StringArrayContains(system.GetJobStateStringArray(errorStates), state.String()) && state.String() != "BidRejected" && state.String() != "Cancelled" {
 					return false, fmt.Errorf("job %s has error state: %s", id, state.String())
 				}
 			}
@@ -216,7 +225,6 @@ func WaitForJobThrowErrors(job executor.Job, errorStates []executor.JobStateType
 }
 
 func Get(jobID string, timeout int) map[string]bool {
-	fmt.Print(timeout)
 	cm := system.NewCleanupManager()
 	defer cm.Cleanup()
 

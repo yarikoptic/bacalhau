@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/filecoin-project/bacalhau/pkg/executor"
-	"github.com/filecoin-project/bacalhau/pkg/job"
+	pjob "github.com/filecoin-project/bacalhau/pkg/job"
 	"github.com/filecoin-project/bacalhau/pkg/storage"
 	"github.com/filecoin-project/bacalhau/pkg/system"
 	"github.com/filecoin-project/bacalhau/pkg/verifier"
@@ -34,6 +34,11 @@ func init() { // nolint:gochecknoinits
 	applyCmd.PersistentFlags().IntVarP(
 		&jobfConcurrency, "concurrency", "c", 1,
 		`How many nodes should run the job in parallel`,
+	)
+
+	applyCmd.PersistentFlags().BoolVarP(
+		&waitForJobToFinishAndPrintOutput, "wait", "w", false,
+		`Wait For Job To Finish And Print Output`,
 	)
 
 	applyCmd.PersistentFlags().StringSliceVarP(&jobTags,
@@ -129,7 +134,7 @@ var applyCmd = &cobra.Command{
 			return err
 		}
 
-		spec, deal, err := job.ConstructDockerJob(
+		spec, deal, err := pjob.ConstructDockerJob(
 			engineType,
 			verifierType,
 			jobspec.Resources.CPU,
@@ -159,7 +164,36 @@ var applyCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		states, err := getAPIClient().GetExecutionStates(ctx, job.ID)
+		if err != nil {
+			return err
+		}
+		currentNodeID, _ := pjob.GetCurrentJobState(states)
+		nodeIds := []string{currentNodeID}
+		if waitForJobToFinishAndPrintOutput {
+			err = WaitForJob(ctx, job.ID, job,
+				WaitForJobThrowErrors(job, []executor.JobStateType{
+					executor.JobStateCancelled,
+					executor.JobStateError,
+				}),
+				WaitForJobAllHaveState(nodeIds, executor.JobStateComplete),
+			)
+			if err != nil {
+				return err
+			}
 
+			cidl := Get(job.ID, jobIpfsGetTimeOut)
+			var cidv string
+			for cid := range cidl {
+				cidv = cid
+			}
+			body, err := os.ReadFile(cidv + "/stdout")
+			if err != nil {
+				return err
+			}
+			fmt.Println()
+			fmt.Println(string(body))
+		}
 		cmd.Printf("%s\n", job.ID)
 		return nil
 

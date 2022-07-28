@@ -1,0 +1,18 @@
+apiVersion: v1alpha1
+engine_name: docker
+verifier_name: ipfs
+job_spec_docker:
+  image: python
+  entrypoint:
+    - /bin/bash
+    - -c
+    -  python -c "import time ;print(0) ;time.sleep(20); print(20)"
+  env: []
+resources:
+  cpu: ''
+  gpu: ''
+  memory: ''
+  disk: ''
+inputs:
+outputs:
+annotations: null
