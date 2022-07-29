@@ -203,7 +203,7 @@ func WaitForJobThrowErrors(job executor.Job, errorStates []executor.JobStateType
 		}
 		if Status != CompleteStatus {
 			log.Trace().Msgf("WaitForJobThrowErrors:\nerrorStates = %+v,\njobStates = %+v", errorStates, jobStates)
-
+			//nolint
 			for id, state := range jobStates {
 				brc := state.String() != "BidRejected" && state.String() != "Cancelled"
 				if state.String() == CompleteStatus {
