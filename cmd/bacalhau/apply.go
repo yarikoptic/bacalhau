@@ -51,6 +51,28 @@ var applyCmd = &cobra.Command{
 	Use:   "apply",
 	Short: "Submit a job.json or job.yaml file and run it on the network",
 	Args:  cobra.MinimumNArgs(0),
+	PostRun: func(cmd *cobra.Command, args []string) {
+		// Can't think of any reason we'd want these to persist.
+		// The below is to clean out for testing purposes. (Kinda ugly to put it in here,
+		// but potentially cleaner than making things public, which would
+		// be the other way to attack this.)
+		jobInputs = []string{}
+		jobInputUrls = []string{}
+		jobInputVolumes = []string{}
+		jobOutputVolumes = []string{}
+		jobEnv = []string{}
+		jobLabels = []string{}
+
+		jobEngine = "docker"
+		jobVerifier = "ipfs"
+		jobConcurrency = 1
+		jobCPU = ""
+		jobMemory = ""
+		jobGPU = ""
+		skipSyntaxChecking = false
+		waitForJobToFinishAndPrintOutput = false
+		jobIpfsGetTimeOut = 10
+	},
 	RunE: func(cmd *cobra.Command, cmdArgs []string) error { // nolintunparam // incorrect that cmd is unused.
 		ctx := context.Background()
 		fileextension := filepath.Ext(filename)
