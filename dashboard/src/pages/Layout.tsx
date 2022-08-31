@@ -171,7 +171,7 @@ const Layout: FC = () => {
       >
         <Toolbar />
         {route.render()}
-        <Container maxWidth={'lg'} sx={{ mt: 4, mb: 4 }}>
+        <Container maxWidth={'xl'} sx={{ mt: 4, mb: 4 }}>
           <Copyright sx={{ pt: 4 }} />
         </Container>
       </Box>

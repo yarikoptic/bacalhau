@@ -5,7 +5,7 @@ import {
   SnackbarContext,
 } from '../contexts/snackbar'
 
-const API_MOUNT = "/api/v1"
+const API_MOUNT = ""
 
 export interface IApiOptions {
   snackbar?: boolean,
