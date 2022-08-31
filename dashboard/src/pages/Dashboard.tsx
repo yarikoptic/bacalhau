@@ -4,12 +4,54 @@ import Container from '@mui/material/Container'
 import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid'
 import useApi from '../hooks/useApi'
 
+const FILECOIN_PLUS_CIDS = [
+  'Qmd9CBYpdgCLuCKRtKRRggu24H72ZUrGax5A9EYvrbC72j',
+  'QmeZRGhe4PmjctYVSVHuEiA9oSXnqmYa4kQubSHgWbjv72',
+]
+
 const columns: GridColDef[] = [
   { field: 'id', headerName: 'ID', width: 200 },
   { field: 'date', headerName: 'Date', width: 200 },
+  {
+    field: 'status',
+    headerName: 'Status',
+    width: 100,
+    renderCell: (params: any) => {
+      let hasFilecoinPlus = false
+      const inputCids = params.row.inputCids || []
+      inputCids.forEach((inputCid: any) => {
+        if (FILECOIN_PLUS_CIDS.includes(inputCid)) {
+          hasFilecoinPlus = true
+        }
+      })
+      if (!hasFilecoinPlus) return ''
+      return (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+          }}
+        >
+          <img
+            style={{
+              width: '30px',
+              height: '30px',
+            }}
+            src="/img/filecoin-logo.png" alt="Filecoin Plus"
+          />
+          <span style={{fontSize: '2em', marginTop: '3px', marginLeft: '3px'}}>
+           +
+          </span>
+        </div>
+        
+      )
+    },
+  },
   { field: 'inputs', headerName: 'Inputs', width: 200 },
-  { field: 'program', headerName: 'Program', width: 600 },
+  { field: 'program', headerName: 'Program', width: 500 },
   { field: 'outputs', headerName: 'Outputs', width: 200 },
+  
 ]
 
 const Dashboard: FC = () => {
@@ -31,8 +73,10 @@ const Dashboard: FC = () => {
         id: job.id,
         date: job.created_at,
         inputs: inputCids.join(', '),
+        inputCids,
         program: `${job_spec_docker.image} ${(job_spec_docker.entrypoint || []).join(' ')}`,
         outputs: outputPaths.join(', '),
+        status: 'X'
       }
     })
   }, [
