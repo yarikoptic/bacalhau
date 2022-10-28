@@ -16,6 +16,7 @@ import ListItemIcon from '@mui/material/ListItemIcon'
 import ListItemText from '@mui/material/ListItemText'
 import Link from '@mui/material/Link'
 
+import DvrIcon from '@mui/icons-material/Dvr'
 import CategoryIcon from '@mui/icons-material/Category'
 import AccountTreeIcon from '@mui/icons-material/AccountTree'
 
@@ -91,14 +92,8 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
 )
 
 const Layout: FC = () => {
-  
-  const [open, setOpen] = useState(false)
-  const toggleDrawer = () => {
-    setOpen(!open)
-  }
-
   const route = useContext(RouterContext)
-
+console.dir(route)
   return (
     <Box sx={{ display: 'flex' }} component="div">
       <CssBaseline />
@@ -141,7 +136,27 @@ const Layout: FC = () => {
         </Toolbar>
         <Divider />
         <List>
-          <ListItem disablePadding>
+          <ListItem
+            disablePadding
+            selected={route.id === 'home'}
+            onClick={ () => {
+              navigate('/')
+            }}
+          >
+            <ListItemButton>
+              <ListItemIcon>
+                <DvrIcon />
+              </ListItemIcon>
+              <ListItemText primary="Dashboard" />
+            </ListItemButton>
+          </ListItem>
+          <ListItem
+            disablePadding
+            selected={route.id === 'network'}
+            onClick={ () => {
+              navigate('/network')
+            }}
+          >
             <ListItemButton>
               <ListItemIcon>
                 <AccountTreeIcon />
@@ -149,7 +164,13 @@ const Layout: FC = () => {
               <ListItemText primary="Network" />
             </ListItemButton>
           </ListItem>
-          <ListItem disablePadding>
+          <ListItem
+            disablePadding
+            selected={route.id === 'jobs'}
+            onClick={ () => {
+              navigate('/jobs')
+            }}
+          >
             <ListItemButton>
               <ListItemIcon>
                 <CategoryIcon />
