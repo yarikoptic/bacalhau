@@ -8,13 +8,16 @@ import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar'
 import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
 import Divider from '@mui/material/Divider'
-import IconButton from '@mui/material/IconButton'
 import Container from '@mui/material/Container'
+import List from '@mui/material/List'
+import ListItem from '@mui/material/ListItem'
+import ListItemButton from '@mui/material/ListItemButton'
+import ListItemIcon from '@mui/material/ListItemIcon'
+import ListItemText from '@mui/material/ListItemText'
 import Link from '@mui/material/Link'
-import Avatar from '@mui/material/Avatar'
 
-import MenuIcon from '@mui/icons-material/Menu'
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
+import CategoryIcon from '@mui/icons-material/Category'
+import AccountTreeIcon from '@mui/icons-material/AccountTree'
 
 import { RouterContext } from '../contexts/router'
 import Snackbar from '../components/system/Snackbar'
@@ -88,7 +91,7 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
 )
 
 const Layout: FC = () => {
-  ever get echoed to the client?te(false)
+  
   const [open, setOpen] = useState(false)
   const toggleDrawer = () => {
     setOpen(!open)
@@ -137,12 +140,24 @@ const Layout: FC = () => {
           </Typography>
         </Toolbar>
         <Divider />
-        {/* <ScenarioMenu
-          onLogout={ () => {
-            setOpen(false)
-            user.logout()
-          }}
-        /> */}
+        <List>
+          <ListItem disablePadding>
+            <ListItemButton>
+              <ListItemIcon>
+                <AccountTreeIcon />
+              </ListItemIcon>
+              <ListItemText primary="Network" />
+            </ListItemButton>
+          </ListItem>
+          <ListItem disablePadding>
+            <ListItemButton>
+              <ListItemIcon>
+                <CategoryIcon />
+              </ListItemIcon>
+              <ListItemText primary="Jobs" />
+            </ListItemButton>
+          </ListItem>
+        </List>
       </Drawer>
       <Box
         component="main"
