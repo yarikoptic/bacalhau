@@ -5,7 +5,7 @@ import Layout from './pages/Layout'
 const mdTheme = createTheme({
   palette: {
     primary: {
-      main: '#04206F'
+      main: '#2D4182'
     },
     secondary: {
       main: '#1FC3CD'

@@ -372,9 +372,11 @@ export BACALHAU_API_PORT_%d=%d`,
 
 	// Just convenience below - print out the last of the nodes information as the global variable
 	summaryShellVariablesString := fmt.Sprintf(`
+export BACALHAU_IPFS_API=%s
 export BACALHAU_IPFS_SWARM_ADDRESSES=%s
 export BACALHAU_API_HOST=%s
 export BACALHAU_API_PORT=%s`,
+		stack.Nodes[0].IPFSClient.APIAddress(),
 		devStackIPFSSwarmAddress,
 		devStackAPIHost,
 		devStackAPIPort,

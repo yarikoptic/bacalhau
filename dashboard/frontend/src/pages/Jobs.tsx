@@ -1,8 +1,10 @@
 import React, { FC, useState, useEffect, useMemo } from 'react'
-import { A } from 'hookrouter'
+import { A, navigate } from 'hookrouter'
 import Grid from '@mui/material/Grid'
 import Container from '@mui/material/Container'
-import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid'
+import Box from '@mui/material/Box'
+import IconButton from '@mui/material/IconButton'
+import { DataGrid, GridColDef } from '@mui/x-data-grid'
 import useApi from '../hooks/useApi'
 import {
   getShortId,
@@ -12,7 +14,7 @@ import {
   Job,
 } from '../types'
 
-
+import InfoIcon from '@mui/icons-material/Info';
 import InputVolumes from '../components/job/InputVolumes'
 import OutputVolumes from '../components/job/OutputVolumes'
 import JobState from '../components/job/JobState'
@@ -75,9 +77,11 @@ const columns: GridColDef[] = [
     width: 200,
     renderCell: (params: any) => {
       return (
-        <OutputVolumes
-          storageSpecs={ params.row.outputs }
-        />
+        <A href={`/jobs/${params.row.job.ID}`} style={{color: '#333'}}>
+          <OutputVolumes
+            storageSpecs={ params.row.outputs }
+          />
+        </A>
       )
     },
   },
@@ -90,6 +94,31 @@ const columns: GridColDef[] = [
         <JobState
           job={ params.row.job }
         />
+      )
+    },
+  },
+  {
+    field: 'actions',
+    headerName: 'Actions',
+    flex: 1,
+    renderCell: (params: any) => {
+      return (
+        <Box
+          sx={{
+            display: 'flex',   
+            justifyContent: 'flex-start',
+            alignItems: 'center',
+            width: '100%',
+          }}
+          component="div"
+        >
+          <IconButton
+            component="label"
+            onClick={ () => navigate(`/jobs/${params.row.job.ID}`) }
+          >
+            <InfoIcon />
+          </IconButton>
+        </Box>
       )
     },
   },

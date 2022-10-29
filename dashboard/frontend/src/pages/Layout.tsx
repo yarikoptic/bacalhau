@@ -93,7 +93,6 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
 
 const Layout: FC = () => {
   const route = useContext(RouterContext)
-console.dir(route)
   return (
     <Box sx={{ display: 'flex' }} component="div">
       <CssBaseline />
@@ -101,6 +100,7 @@ console.dir(route)
         <Toolbar
           sx={{
             pr: '24px', // keep right padding when drawer closed
+            backgroundColor: '#fff'
           }}
         >
           <Typography

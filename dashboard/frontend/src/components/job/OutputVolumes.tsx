@@ -24,17 +24,14 @@ const OutputVolumes: FC<{
         storageSpecs.map((storageSpec) => {
           return (
             <li key={storageSpec.Name}>
-              <a
-                href={ "" }
-                target="_blank"
-                rel="noreferrer"
+              <span
                 style={{
                   fontSize: '0.8em',
                   color: '#333',
                 }}
               >
                 { storageSpec.Name }:{ storageSpec.path }
-              </a>
+              </span>
             </li>
           )
         })
