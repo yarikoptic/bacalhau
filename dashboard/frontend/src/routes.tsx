@@ -1,3 +1,4 @@
+import { A } from 'hookrouter'
 import Dashboard from './pages/Dashboard'
 import Network from './pages/Network'
 import Jobs from './pages/Jobs'
@@ -5,7 +6,7 @@ import Job from './pages/Job'
 
 export type IRouteObject = {
   id: string,
-  title?: string,
+  title?: string | JSX.Element,
   render: {
     (): JSX.Element,
   },
@@ -35,7 +36,11 @@ export const routes: Record<string, IRouteFactory> = {
   }),
   '/jobs/:id': ({id}) => ({
     id: 'jobs.page',
-    title: `Job ${id}`,
+    title: (
+      <span>
+        <A href="/jobs">All Jobs</A> : Job {id}
+      </span>
+    ),
     render: () => <Job id={ id } />,
     params: {},
   }),

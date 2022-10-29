@@ -1,9 +1,12 @@
-import React, { FC, useState, useEffect, useMemo } from 'react'
+import React, { FC, useState, useEffect, useMemo, useCallback } from 'react'
 import { A, navigate } from 'hookrouter'
 import Grid from '@mui/material/Grid'
 import Container from '@mui/material/Container'
+import TextField from '@mui/material/TextField'
+import Button from '@mui/material/Button'
 import Box from '@mui/material/Box'
 import IconButton from '@mui/material/IconButton'
+import Tooltip from '@mui/material/Tooltip'
 import { DataGrid, GridColDef } from '@mui/x-data-grid'
 import useApi from '../hooks/useApi'
 import {
@@ -14,11 +17,13 @@ import {
   Job,
 } from '../types'
 
+import RefreshIcon from '@mui/icons-material/Refresh'
 import InfoIcon from '@mui/icons-material/Info';
 import InputVolumes from '../components/job/InputVolumes'
 import OutputVolumes from '../components/job/OutputVolumes'
 import JobState from '../components/job/JobState'
 import JobProgram from '../components/job/JobProgram'
+import useLoadingErrorHandler from '../hooks/useLoadingErrorHandler'
 
 const columns: GridColDef[] = [
   {
@@ -125,15 +130,16 @@ const columns: GridColDef[] = [
 ]
 
 const Jobs: FC = () => {
+  const [ findJobID, setFindJobID ] = useState('')
   const [ jobs, setJobs ] = useState<Job[]>([])
   const api = useApi()
+  const loadingErrorHandler = useLoadingErrorHandler()
 
   const rows = useMemo(() => {
     return jobs.map(job => {
       const {
         inputs = [],
         outputs = [],
-        Docker,
       } = job.Spec
       return {
         job,
@@ -148,8 +154,8 @@ const Jobs: FC = () => {
     jobs,
   ])
 
-  useEffect(() => {
-    const doAsync = async () => {
+  const loadJobs = useCallback(async () => {
+    const handler = loadingErrorHandler(async () => {
       const jobs = await api.post('/api/jobs', {
         maxJobs: 100,
         returnAll: true,
@@ -164,13 +170,62 @@ const Jobs: FC = () => {
         return 0
       })
       setJobs(jobs)
-    }
-    doAsync()
+    })
+    await handler()
+  }, [])
+
+  const findJob = useCallback(async () => {
+    const handler = loadingErrorHandler(async () => {
+      if(!findJobID) throw new Error(`please enter a job id`)
+      try {
+        const info = await api.post('/api/jobinfo', {
+          id: findJobID,
+        })
+        navigate(`/jobs/${info.job.ID}`)
+      } catch(err) {
+        throw new Error(`could not load job with id ${findJobID}`)
+      }
+    })
+    await handler()
+  }, [
+    findJobID,
+  ])
+
+  useEffect(() => {
+    loadJobs()
   }, [])
 
   return (
     <Container maxWidth={ 'xl' } sx={{ mt: 4, mb: 4 }}>
       <Grid container spacing={3}>
+        <Grid item xs={4}>
+          <TextField
+            fullWidth
+            size="small"
+            label="Find Job by ID"
+            value={ findJobID }
+            onChange={ (e) => setFindJobID(e.target.value) }
+          />
+        </Grid>
+        <Grid item xs={2}>
+          <Button
+            size="small"
+            variant="contained"
+            onClick={ findJob }
+          >
+            Find Job
+          </Button>
+        </Grid>
+        <Grid item xs={6} sx={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+        }}>
+          <Tooltip title="Refresh">
+            <IconButton aria-label="delete" color="primary" onClick={ loadJobs }>
+              <RefreshIcon />
+            </IconButton>
+          </Tooltip>
+        </Grid>
         <Grid item xs={12}>
           <div style={{ height: 800, width: '100%' }}>
             <DataGrid

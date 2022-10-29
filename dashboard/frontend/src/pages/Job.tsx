@@ -4,6 +4,7 @@ import Grid from '@mui/material/Grid'
 import Container from '@mui/material/Container'
 import Typography from '@mui/material/Typography'
 import Paper from '@mui/material/Paper'
+import Divider from '@mui/material/Divider'
 import useApi from '../hooks/useApi'
 import {
   JobInfo,
@@ -14,8 +15,10 @@ import JobState from '../components/job/JobState'
 import JobProgram from '../components/job/JobProgram'
 import {
   SmallText,
+  SmallLink,
   BoldSectionTitle,
 } from '../components/widgets/GeneralText'
+import TerminalWindow from '../components/widgets/TerminalWindow'
 import useLoadingErrorHandler from '../hooks/useLoadingErrorHandler'
 
 const JobPage: FC<{
@@ -24,6 +27,7 @@ const JobPage: FC<{
   id,
 }) => {
   const [ jobInfo, setJobInfo ] = useState<JobInfo>()
+  const [ jobSpecOpen, setJobSpecOpen ] = useState(false)
   const api = useApi()
   const loadingErrorHandler = useLoadingErrorHandler()
 
@@ -32,16 +36,10 @@ const JobPage: FC<{
       const info = await api.post('/api/jobinfo', {
         id,
       })
-      await bluebird.delay(2000)
-      
       setJobInfo(info)
-
-      throw new Error('test')
     })
     doAsync()
   }, [])
-
-  console.dir(jobInfo)
 
   if(!jobInfo) return null
 
@@ -82,6 +80,22 @@ const JobPage: FC<{
               </Grid>
               <Grid item xs={2}>
                 <Typography variant="caption">
+                  Status:
+                </Typography>
+              </Grid>
+              <Grid item xs={10}>
+                <JobState
+                  job={ jobInfo.job }
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Divider sx={{
+                  mt: 1,
+                  mb: 1,
+                }} />
+              </Grid>
+              <Grid item xs={2}>
+                <Typography variant="caption">
                   Inputs:
                 </Typography>
               </Grid>
@@ -90,14 +104,53 @@ const JobPage: FC<{
                   storageSpecs={ jobInfo.job.Spec.inputs || [] }
                 />
               </Grid>
+              <Grid item xs={12}>
+                <Divider sx={{
+                  mt: 1,
+                  mb: 1,
+                }} />
+              </Grid>
               <Grid item xs={2}>
                 <Typography variant="caption">
                   Program:
                 </Typography>
               </Grid>
-              <Grid item xs={10}>
+              <Grid
+                item
+                xs={10}
+                sx={{
+                  cursor: 'pointer',
+                }}
+                onClick={() => setJobSpecOpen(true)}
+              >
                 <JobProgram
                   job={ jobInfo.job }
+                />
+              </Grid>
+              <Grid item xs={12} sx={{
+                display: 'flex',
+                justifyContent: 'center',
+              }}>
+                <SmallLink
+                  onClick={() => setJobSpecOpen(true)}
+                >
+                  view info
+                </SmallLink>
+              </Grid>
+              <Grid item xs={12}>
+                <Divider sx={{
+                  mt: 1,
+                  mb: 1,
+                }} />
+              </Grid>
+              <Grid item xs={2}>
+                <Typography variant="caption">
+                  Outputs:
+                </Typography>
+              </Grid>
+              <Grid item xs={10}>
+                <OutputVolumes
+                  storageSpecs={ jobInfo.job.Spec.outputs || [] }
                 />
               </Grid>
             </Grid>
@@ -126,6 +179,18 @@ const JobPage: FC<{
           </Paper>
         </Grid>
       </Grid>
+      {
+        jobSpecOpen && (
+          <TerminalWindow
+            open
+            title="Job Spec"
+            backgroundColor="#fff"
+            color="#000"
+            data={ jobInfo.job.Spec }
+            onClose={ () => setJobSpecOpen(false) }
+          />
+        )
+      }
     </Container>
   )
 }

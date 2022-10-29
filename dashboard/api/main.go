@@ -173,18 +173,18 @@ func main() {
 
 	getJobInfo := func(ctx context.Context, id string) (*JobInfo, error) {
 		info := &JobInfo{}
+
+		job, _, err := api.Get(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		info.Job = *job
+		id = job.ID
+
 		errorChan := make(chan error, 1)
 		doneChan := make(chan bool, 1)
 		var wg sync.WaitGroup
-		wg.Add(4)
-		go func() {
-			job, _, err := api.Get(ctx, id)
-			if err != nil {
-				errorChan <- err
-			}
-			info.Job = *job
-			wg.Done()
-		}()
+		wg.Add(3)
 		go func() {
 			events, err := api.GetEvents(ctx, id)
 			if err != nil {

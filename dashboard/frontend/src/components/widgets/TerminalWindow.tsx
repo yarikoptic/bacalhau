@@ -1,18 +1,20 @@
 import React, { FC } from 'react'
 import Window, { WindowProps } from './Window'
-import TerminalText from './TerminalText'
+import TerminalText, { TerminalTextConfig } from './TerminalText'
 
-interface TerminalWindowProps extends WindowProps {
+type TerminalWindowProps = {
   data: any,
   title?: string,
   onClose: {
     (): void,
   }
-}
+} & WindowProps & TerminalTextConfig
 
 const TerminalWindow: FC<TerminalWindowProps> = ({
   data,
-  title = 'kubectl get all',
+  title = 'Data',
+  color,
+  backgroundColor,
   onClose,
   ...windowProps
 }) => {
@@ -27,6 +29,8 @@ const TerminalWindow: FC<TerminalWindowProps> = ({
     >
       <TerminalText
         data={ data }
+        color={ color }
+        backgroundColor={ backgroundColor }
       />
     </Window>
   )

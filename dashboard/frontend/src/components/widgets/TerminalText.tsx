@@ -1,10 +1,17 @@
 import React, { FC } from 'react'
 import Box from '@mui/material/Box'
 
+export type TerminalTextConfig = {
+  backgroundColor?: string,
+  color?: string,
+}
+
 const TerminalText: FC<{
   data: any,
-}> = ({
+} & TerminalTextConfig> = ({
   data,
+  backgroundColor = '#000',
+  color = '#fff',
 }) => {
   return (
     <Box
@@ -13,7 +20,7 @@ const TerminalText: FC<{
         width: '100%',
         padding: 2,
         margin: 0,
-        backgroundColor: '#000000',
+        backgroundColor,
         overflow: 'auto',
       }}
     >
@@ -22,7 +29,7 @@ const TerminalText: FC<{
         sx={{
           padding: 1,
           margin: 0,
-          color: '#ffffff',
+          color,
           font: 'Courier',
           fontSize: '12px',
         }}

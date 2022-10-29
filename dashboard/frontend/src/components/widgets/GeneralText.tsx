@@ -6,6 +6,12 @@ export const SmallText = styled('span')({
   fontSize: '0.8em',
 })
 
+export const SmallLink = styled('div')({
+  fontSize: '0.8em',
+  color: 'blue',
+  cursor: 'pointer',
+})
+
 export const BoldSectionTitle: FC = ({
   children,
 }) => {
