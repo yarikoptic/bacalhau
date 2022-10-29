@@ -3,13 +3,16 @@ import { SxProps } from '@mui/system'
 import Box from '@mui/material/Box'
 import {
   StorageSpec,
+  RunCommandResult,
 } from '../../types'
 
 const OutputVolumes: FC<{
-  storageSpecs: StorageSpec[],
+  outputVolumes: StorageSpec[],
+  publishedResults?: StorageSpec,
   sx?: SxProps,
 }> = ({
-  storageSpecs,
+  outputVolumes = [],
+  publishedResults,
   sx = {},
 }) => {
   return (
@@ -21,7 +24,23 @@ const OutputVolumes: FC<{
       }}
     >
       {
-        storageSpecs.map((storageSpec) => {
+        publishedResults && (
+          <li>
+            <span
+              style={{
+                fontSize: '0.8em',
+                color: '#333',
+              }}
+            >
+              <a href={ `https://ipfs.io/ipfs/${publishedResults.CID}` }>
+                all
+              </a>
+            </span>
+          </li>
+        )
+      }
+      {
+        outputVolumes.map((storageSpec) => {
           return (
             <li key={storageSpec.Name}>
               <span
@@ -30,7 +49,18 @@ const OutputVolumes: FC<{
                   color: '#333',
                 }}
               >
-                { storageSpec.Name }:{ storageSpec.path }
+                {
+                  publishedResults ? (
+                    <a href={ `https://ipfs.io/ipfs/${publishedResults.CID}${storageSpec.path}` }>
+                      { storageSpec.Name }:{ storageSpec.path }
+                    </a>
+                  ) : (
+                    <span>
+                      { storageSpec.Name }:{ storageSpec.path }
+                    </span>
+                  )
+                }
+                
               </span>
             </li>
           )

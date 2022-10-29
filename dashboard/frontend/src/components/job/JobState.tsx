@@ -7,6 +7,7 @@ import {
 } from '../../types'
 
 import FilPlus from './FilPlus'
+import ShardState from './ShardState'
 
 import {
   getJobShardState,
@@ -20,29 +21,21 @@ const FILECOIN_PLUS_CIDS = [
 
 const JobState: FC<{
   job: Job,
+  withFilecoinPlus?: boolean,
   sx?: SxProps,
 }> = ({
   job,
+  withFilecoinPlus = true,
   sx = {},
 }) => {
   const shardState = useMemo(() => {
-    const title = getShardStateTitle(getJobShardState(job))
-    let color = '#666'
-    if(title == 'Error') {
-      color = '#990000'
-    } else if(title == 'Completed') {
-      color = '#009900'
-    }
-    return (
-      <Typography variant="caption" style={{color}}>
-        { title }
-      </Typography>
-    )
+    return getShardStateTitle(getJobShardState(job))
   }, [
     job,
   ])
 
   const isFilecoinPlus = useMemo(() => {
+    if(!withFilecoinPlus) return false
     const {
       inputs = [],
     } = job.Spec
@@ -56,6 +49,7 @@ const JobState: FC<{
     })
     return hasFilecoinPlus
   }, [
+    withFilecoinPlus,
     job,
   ])
 
@@ -75,7 +69,9 @@ const JobState: FC<{
           minWidth: '70px',
         }}
       >
-        { shardState }
+        <ShardState
+          state={ shardState }
+        />
       </div>
       <div
         style={{

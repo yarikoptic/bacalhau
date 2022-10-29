@@ -84,15 +84,15 @@ const columns: GridColDef[] = [
       return (
         <A href={`/jobs/${params.row.job.ID}`} style={{color: '#333'}}>
           <OutputVolumes
-            storageSpecs={ params.row.outputs }
+            outputVolumes={ params.row.outputs }
           />
         </A>
       )
     },
   },
   {
-    field: 'status',
-    headerName: 'Status',
+    field: 'state',
+    headerName: 'State',
     width: 140,
     renderCell: (params: any) => {
       return (

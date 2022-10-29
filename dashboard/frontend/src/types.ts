@@ -45,12 +45,12 @@ export interface PublishedResult {
 export interface Job {
   APIVersion: string;
   ID: string;
-  RequesterNodeID?: string;
+  RequesterNodeID: string;
   RequesterPublicKey?: string;
   ClientID?: string;
   Spec: Spec;
   Deal: Deal;
-  ExecutionPlan?: JobExecutionPlan;
+  ExecutionPlan: JobExecutionPlan;
   CreatedAt: string;
   JobState?: JobState;
   JobEvents?: JobEvent[];
@@ -94,8 +94,8 @@ export interface JobShardState {
   Status: string;
   VerificationProposal?: string;
   VerificationResult?: VerificationResult;
-  PublishedResults?: StorageSpec;
-  RunOutput?: RunCommandResult;
+  PublishedResults: StorageSpec;
+  RunOutput: RunCommandResult;
 }
 
 export interface Deal {
@@ -151,12 +151,12 @@ export interface JobLocalEvent {
 
 export interface JobEvent {
   APIVersion?: string;
-  JobID?: string;
-  ShardIndex?: number;
-  ClientID?: string;
-  SourceNodeID?: string;
-  TargetNodeID?: string;
-  EventName?: string;
+  JobID: string;
+  ShardIndex: number;
+  ClientID: string;
+  SourceNodeID: string;
+  TargetNodeID: string;
+  EventName: string;
   Spec?: Spec;
   JobExecutionPlan?: JobExecutionPlan;
   Deal?: Deal;
@@ -164,7 +164,7 @@ export interface JobEvent {
   VerificationProposal?: string;
   VerificationResult?: VerificationResult;
   PublishedResult?: StorageSpec;
-  EventTime?: string;
+  EventTime: string;
   SenderPublicKey?: string;
   RunOutput?: RunCommandResult;
 }
