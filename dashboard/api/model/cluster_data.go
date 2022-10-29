@@ -5,6 +5,8 @@ import (
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/filecoin-project/bacalhau/pkg/publicapi"
 )
 
 type ClusterPeers map[string][]string
@@ -24,28 +26,41 @@ type ClusterMapResult struct {
 	Links []ClusterMapLink `json:"links"`
 }
 
-type ClusterMap struct {
-	Cluster *Cluster
-	data    ClusterMapResult
-	mutex   sync.Mutex
+type ClusterData struct {
+	Cluster        *Cluster
+	clusterMapData ClusterMapResult
+	debugData      []publicapi.DebugResponse
+	mutex          sync.Mutex
 }
 
-func NewClusterMap(cluster *Cluster) *ClusterMap {
-	return &ClusterMap{
-		Cluster: cluster,
-		data:    ClusterMapResult{},
+func NewClusterData(cluster *Cluster) *ClusterData {
+	return &ClusterData{
+		Cluster:        cluster,
+		clusterMapData: ClusterMapResult{},
+		debugData:      []publicapi.DebugResponse{},
 	}
 }
 
-func (clusterMap *ClusterMap) GetResults() ClusterMapResult {
+func (clusterMap *ClusterData) GetClusterMapData() ClusterMapResult {
 	clusterMap.mutex.Lock()
 	defer clusterMap.mutex.Unlock()
-	return clusterMap.data
+	return clusterMap.clusterMapData
 }
 
-func (clusterMap *ClusterMap) Loop() {
+func (clusterMap *ClusterData) GetDebugData() []publicapi.DebugResponse {
+	clusterMap.mutex.Lock()
+	defer clusterMap.mutex.Unlock()
+	return clusterMap.debugData
+}
+
+func (clusterMap *ClusterData) Loop() {
 	for {
 		peers, err := clusterMap.LoadPeers()
+		if err != nil {
+			log.Println(err.Error())
+			continue
+		}
+		debug, err := clusterMap.LoadDebug()
 		if err != nil {
 			log.Println(err.Error())
 			continue
@@ -53,13 +68,18 @@ func (clusterMap *ClusterMap) Loop() {
 		func() {
 			clusterMap.mutex.Lock()
 			defer clusterMap.mutex.Unlock()
-			clusterMap.data = clusterMap.ProcessPeers(peers)
+			clusterMap.clusterMapData = clusterMap.ProcessPeers(peers)
+			clusterMap.debugData = debug
 		}()
 		time.Sleep(1 * time.Second)
 	}
 }
 
-func (clusterMap *ClusterMap) LoadPeers() (ClusterPeers, error) {
+func (clusterMap *ClusterData) LoadDebug() ([]publicapi.DebugResponse, error) {
+	return clusterMap.Cluster.LoadDebugData()
+}
+
+func (clusterMap *ClusterData) LoadPeers() (ClusterPeers, error) {
 	newPeerMap := ClusterPeers{}
 	for _, server := range clusterMap.Cluster.Servers {
 		id, err := server.GetID()
@@ -75,7 +95,7 @@ func (clusterMap *ClusterMap) LoadPeers() (ClusterPeers, error) {
 	return newPeerMap, nil
 }
 
-func (clusterMap *ClusterMap) ProcessPeers(theMap ClusterPeers) ClusterMapResult {
+func (clusterMap *ClusterData) ProcessPeers(theMap ClusterPeers) ClusterMapResult {
 	result := ClusterMapResult{}
 
 	// keys of theMap

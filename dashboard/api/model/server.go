@@ -102,3 +102,7 @@ func (server *Server) GetPeers() ([]string, error) {
 	sort.Strings(peers)
 	return peers, nil
 }
+
+func (server *Server) GetDebug() (publicapi.DebugResponse, error) {
+	return HttpGet[publicapi.DebugResponse](server.GetApiAddress("/debug"))
+}

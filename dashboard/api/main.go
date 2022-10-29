@@ -26,13 +26,22 @@ func main() {
 		log.Fatal(err)
 	}
 
-	clusterMap := model.NewClusterMap(cluster)
-	go clusterMap.Loop()
+	clusterData := model.NewClusterData(cluster)
+	go clusterData.Loop()
 
 	fmt.Printf("servers: %d\n", len(cluster.Servers))
 
 	http.Handle("/api/map", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		err := json.NewEncoder(w).Encode(clusterMap.GetResults())
+		err := json.NewEncoder(w).Encode(clusterData.GetClusterMapData())
+		if err != nil {
+			log.Print(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}))
+
+	http.Handle("/api/nodes", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		err := json.NewEncoder(w).Encode(clusterData.GetDebugData())
 		if err != nil {
 			log.Print(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)

@@ -3,6 +3,9 @@ package model
 import (
 	"fmt"
 	"strconv"
+	"sync"
+
+	"github.com/filecoin-project/bacalhau/pkg/publicapi"
 )
 
 type Cluster struct {
@@ -46,4 +49,43 @@ func NewCluster(args []string) (*Cluster, error) {
 	return &Cluster{
 		Servers: servers,
 	}, nil
+}
+
+func (cluster *Cluster) LoadDebugData() ([]publicapi.DebugResponse, error) {
+	handler := func(server *Server) (publicapi.DebugResponse, error) {
+		return server.GetDebug()
+	}
+	return LoadServerData(cluster, handler)
+}
+
+func LoadServerData[T any](cluster *Cluster, handler func(server *Server) (T, error)) ([]T, error) {
+	data := []T{}
+	errorChan := make(chan error, 1)
+	doneChan := make(chan bool, 1)
+	mutex := sync.Mutex{}
+	var wg sync.WaitGroup
+	wg.Add(len(cluster.Servers))
+	for _, server := range cluster.Servers {
+		server := server
+		go func() {
+			singleData, err := handler(server)
+			if err != nil {
+				errorChan <- err
+			}
+			mutex.Lock()
+			defer mutex.Unlock()
+			data = append(data, singleData)
+			wg.Done()
+		}()
+	}
+	go func() {
+		wg.Wait()
+		doneChan <- true
+	}()
+	select {
+	case <-doneChan:
+		return data, nil
+	case err := <-errorChan:
+		return nil, err
+	}
 }
