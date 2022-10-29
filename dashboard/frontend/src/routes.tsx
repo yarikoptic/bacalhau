@@ -33,10 +33,10 @@ export const routes: Record<string, IRouteFactory> = {
     render: () => <Jobs />,
     params: {},
   }),
-  '/jobs/:id': () => ({
+  '/jobs/:id': ({id}) => ({
     id: 'jobs.page',
     title: 'Job',
-    render: () => <Job />,
+    render: () => <Job id={ id } />,
     params: {},
   }),
 }

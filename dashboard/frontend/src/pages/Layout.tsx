@@ -166,7 +166,7 @@ const Layout: FC = () => {
           </ListItem>
           <ListItem
             disablePadding
-            selected={route.id === 'jobs'}
+            selected={route.id.indexOf('jobs') === 0}
             onClick={ () => {
               navigate('/jobs')
             }}

@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/filecoin-project/bacalhau/pkg/model"
 	"github.com/filecoin-project/bacalhau/pkg/publicapi"
 	"github.com/filecoin-project/bacalhau/pkg/system"
 )
@@ -57,6 +58,23 @@ func updateResult(theMap map[string][]string) Result {
 		}
 	}
 	return result
+}
+
+func getRequestBody[T any](w http.ResponseWriter, r *http.Request) (*T, error) {
+	var requestBody T
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Print(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return nil, err
+	}
+	err = json.Unmarshal(body, &requestBody)
+	if err != nil {
+		log.Print(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return nil, err
+	}
+	return &requestBody, nil
 }
 
 func main() {
@@ -146,6 +164,63 @@ func main() {
 	}
 	api := publicapi.NewAPIClient(getSingleAddress(""))
 
+	type JobInfo struct {
+		Job     model.Job               `json:"job"`
+		State   model.JobState          `json:"state"`
+		Events  []model.JobEvent        `json:"events"`
+		Results []model.PublishedResult `json:"results"`
+	}
+
+	getJobInfo := func(ctx context.Context, id string) (*JobInfo, error) {
+		info := &JobInfo{}
+		errorChan := make(chan error, 1)
+		doneChan := make(chan bool, 1)
+		var wg sync.WaitGroup
+		wg.Add(4)
+		go func() {
+			job, _, err := api.Get(ctx, id)
+			if err != nil {
+				errorChan <- err
+			}
+			info.Job = *job
+			wg.Done()
+		}()
+		go func() {
+			events, err := api.GetEvents(ctx, id)
+			if err != nil {
+				errorChan <- err
+			}
+			info.Events = events
+			wg.Done()
+		}()
+		go func() {
+			state, err := api.GetJobState(ctx, id)
+			if err != nil {
+				errorChan <- err
+			}
+			info.State = state
+			wg.Done()
+		}()
+		go func() {
+			results, err := api.GetResults(ctx, id)
+			if err != nil {
+				errorChan <- err
+			}
+			info.Results = results
+			wg.Done()
+		}()
+		go func() {
+			wg.Wait()
+			doneChan <- true
+		}()
+		select {
+		case <-doneChan:
+			return info, nil
+		case err := <-errorChan:
+			return nil, err
+		}
+	}
+
 	// serve local files on web server
 
 	// fs := http.FileServer(http.Dir("./static"))
@@ -166,37 +241,28 @@ func main() {
 		log.Fatal(err)
 	}
 
-	type listRequest struct {
-		IDFilter    string `json:"idFilter"`
-		MaxJobs     int    `json:"maxJobs"`
-		ReturnAll   bool   `json:"returnAll"`
-		SortBy      string `json:"sortBy"`
-		SortReverse bool   `json:"sortReverse"`
-	}
-
 	http.Handle("/api/jobs", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		theMutex.Lock()
 		defer theMutex.Unlock()
 
-		var listReq listRequest
-		body, err := ioutil.ReadAll(r.Body)
+		jobsReq, err := getRequestBody[struct {
+			IDFilter    string `json:"idFilter"`
+			MaxJobs     int    `json:"maxJobs"`
+			ReturnAll   bool   `json:"returnAll"`
+			SortBy      string `json:"sortBy"`
+			SortReverse bool   `json:"sortReverse"`
+		}](w, r)
 		if err != nil {
-			log.Print(err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-		err = json.Unmarshal(body, &listReq)
-		if err != nil {
-			log.Print(err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
 		results, err := api.List(
 			context.Background(),
-			listReq.IDFilter,
-			listReq.MaxJobs,
-			listReq.ReturnAll,
-			listReq.SortBy,
-			listReq.SortReverse,
+			jobsReq.IDFilter,
+			jobsReq.MaxJobs,
+			jobsReq.ReturnAll,
+			jobsReq.SortBy,
+			jobsReq.SortReverse,
 		)
 
 		if err != nil {
@@ -205,6 +271,32 @@ func main() {
 			return
 		}
 		err = json.NewEncoder(w).Encode(results)
+		if err != nil {
+			log.Print(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}))
+
+	http.Handle("/api/job", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		theMutex.Lock()
+		defer theMutex.Unlock()
+
+		jobReq, err := getRequestBody[struct {
+			ID string `json:"id"`
+		}](w, r)
+		if err != nil {
+			return
+		}
+
+		info, err := getJobInfo(context.Background(), jobReq.ID)
+		if err != nil {
+			log.Print(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		err = json.NewEncoder(w).Encode(info)
 		if err != nil {
 			log.Print(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
