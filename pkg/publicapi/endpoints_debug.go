@@ -12,7 +12,7 @@ import (
 	"github.com/filecoin-project/bacalhau/pkg/system"
 )
 
-type debugResponse struct {
+type DebugResponse struct {
 	AvailableComputeCapacity model.ResourceUsageData   `json:"AvailableComputeCapacity"`
 	RequesterJobs            []requesternode.ActiveJob `json:"RequesterJobs"`
 	ComputeJobs              []computenode.ActiveJob   `json:"ComputeJobs"`
@@ -23,7 +23,7 @@ func (apiServer *APIServer) debug(res http.ResponseWriter, req *http.Request) {
 	ctx, span := system.GetSpanFromRequest(req, "apiServer/debug")
 	defer span.End()
 
-	responseObj := debugResponse{
+	responseObj := DebugResponse{
 		AvailableComputeCapacity: apiServer.ComputeNode.GetAvailableCapacity(ctx),
 		RequesterJobs:            apiServer.Requester.GetActiveJobs(ctx),
 		ComputeJobs:              apiServer.ComputeNode.GetActiveJobs(ctx),
