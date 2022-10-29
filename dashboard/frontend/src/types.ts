@@ -80,11 +80,11 @@ export interface JobShardingConfig {
 }
 
 export interface JobState {
-  Nodes?: { [key: string]: JobNodeState};
+  Nodes: { [key: string]: JobNodeState};
 }
 
 export interface JobNodeState {
-  Shards?: { [key: number]: JobShardState};
+  Shards: { [key: number]: JobShardState};
 }
 
 export interface JobShardState {
@@ -178,4 +178,11 @@ export interface JobCreatePayload {
   ClientID?: string;
   Job?: Job;
   Context?: string;
+}
+
+export interface JobInfo {
+  job: Job,
+  events: JobEvent[],
+  results: PublishedResult[],
+  state: JobState,
 }

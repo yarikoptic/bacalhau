@@ -35,7 +35,7 @@ export const routes: Record<string, IRouteFactory> = {
   }),
   '/jobs/:id': ({id}) => ({
     id: 'jobs.page',
-    title: 'Job',
+    title: `Job ${id}`,
     render: () => <Job id={ id } />,
     params: {},
   }),

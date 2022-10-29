@@ -278,7 +278,7 @@ func main() {
 		}
 	}))
 
-	http.Handle("/api/job", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	http.Handle("/api/jobinfo", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		theMutex.Lock()
 		defer theMutex.Unlock()
 
