@@ -4,9 +4,16 @@ import Container from '@mui/material/Container'
 import useApi from '../hooks/useApi'
 import useLoadingErrorHandler from '../hooks/useLoadingErrorHandler'
 
+import {
+  ClusterMapResult,
+  DebugResponse,
+} from '../types'
+
+import ForceGraph from '../components/network/ForceGraph'
+
 const Network: FC = () => {
-  const [ mapData, setMapData ] = useState<any>()
-  const [ nodeData, setNodeData ] = useState<any>()
+  const [ mapData, setMapData ] = useState<ClusterMapResult>()
+  const [ nodeData, setNodeData ] = useState<DebugResponse>()
   const api = useApi()
   const loadingErrorHandler = useLoadingErrorHandler()
 
@@ -38,9 +45,14 @@ const Network: FC = () => {
           Nodes
         </Grid>
         <Grid item xs={6}>
-          <iframe width="600px" height="600px" src="/html/viz.html" frameBorder="none" style={{
+          {
+            mapData && (
+              <ForceGraph data={ mapData } />
+            )
+          }
+          {/* <iframe width="600px" height="600px" src="/html/viz.html" frameBorder="none" style={{
             border: '1px solid #999'
-          }}></iframe>
+          }}></iframe> */}
         </Grid>
       </Grid>
     </Container>

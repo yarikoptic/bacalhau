@@ -186,3 +186,45 @@ export interface JobInfo {
   results: PublishedResult[],
   state: JobState,
 }
+
+
+export interface ClusterMapNode {
+  id: string,
+  group: number,
+}
+
+export interface ClusterMapLink {
+  source: string,
+  target: string,
+}
+
+export interface ClusterMapResult {
+  nodes: ClusterMapNode[],
+  links: ClusterMapLink[],
+}
+
+export interface ResourceUsageData {
+  CPU?: number,
+  Memory?: number,
+  Disk?: number,
+  GPU?: number,
+}
+
+export interface RequesterActiveJob {
+  ShardID: string,
+  State: string,
+  BiddingNodesCount: number,
+  CompletedNodesCount: number,
+}
+
+export interface ComputeNodeActiveJob {
+  ShardID: string,
+  State: string,
+  CapacityRequirements: ResourceUsageData,
+}
+
+export interface DebugResponse {
+  AvailableComputeCapacity: ResourceUsageData,
+  RequesterJobs: RequesterActiveJob[],
+  ComputeJobs: ComputeNodeActiveJob[],
+}

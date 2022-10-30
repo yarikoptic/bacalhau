@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -12,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/filecoin-project/bacalhau/pkg/publicapi"
 	"github.com/filecoin-project/bacalhau/pkg/system"
 )
 
@@ -87,10 +85,6 @@ func main() {
 		})
 	}
 
-	getSingleAddress := func(path string) string {
-		return fmt.Sprintf("http://%s:%d%s", servers[0].Address, servers[0].StartPort, path)
-	}
-
 	fmt.Printf("servers: %+v\n", servers)
 
 	theMap := map[string][]string{}
@@ -160,24 +154,6 @@ func main() {
 	if err := system.InitConfig(); err != nil {
 		log.Fatal(err)
 	}
-	api := publicapi.NewAPIClient(getSingleAddress(""))
-
-	http.Handle("/api/jobs", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		theMutex.Lock()
-		defer theMutex.Unlock()
-		results, err := api.List(context.Background())
-		if err != nil {
-			log.Print(err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		err = json.NewEncoder(w).Encode(results)
-		if err != nil {
-			log.Print(err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	}))
 
 	log.Print("Listening on :31337...")
 	err := http.ListenAndServe(":31337", nil)
