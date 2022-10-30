@@ -13,6 +13,7 @@ import (
 )
 
 type DebugResponse struct {
+	ID                       string                    `json:"ID"`
 	AvailableComputeCapacity model.ResourceUsageData   `json:"AvailableComputeCapacity"`
 	RequesterJobs            []requesternode.ActiveJob `json:"RequesterJobs"`
 	ComputeJobs              []computenode.ActiveJob   `json:"ComputeJobs"`
@@ -24,6 +25,7 @@ func (apiServer *APIServer) debug(res http.ResponseWriter, req *http.Request) {
 	defer span.End()
 
 	responseObj := DebugResponse{
+		ID:                       apiServer.transport.HostID(),
 		AvailableComputeCapacity: apiServer.ComputeNode.GetAvailableCapacity(ctx),
 		RequesterJobs:            apiServer.Requester.GetActiveJobs(ctx),
 		ComputeJobs:              apiServer.ComputeNode.GetActiveJobs(ctx),

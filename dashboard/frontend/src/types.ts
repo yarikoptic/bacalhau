@@ -224,6 +224,7 @@ export interface ComputeNodeActiveJob {
 }
 
 export interface DebugResponse {
+  ID: string,
   AvailableComputeCapacity: ResourceUsageData,
   RequesterJobs: RequesterActiveJob[],
   ComputeJobs: ComputeNodeActiveJob[],
