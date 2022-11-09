@@ -139,6 +139,8 @@ func (apiServer *APIServer) ListenAndServe(ctx context.Context, cm *system.Clean
 	sm.Handle(apiServer.chainHandlers("/livez", apiServer.livez))
 	sm.Handle(apiServer.chainHandlers("/readyz", apiServer.readyz))
 	sm.Handle(apiServer.chainHandlers("/debug", apiServer.debug))
+	sm.Handle(apiServer.chainHandlers("/ws", apiServer.debug))
+
 	sm.Handle("/metrics", promhttp.Handler())
 
 	srv := http.Server{
