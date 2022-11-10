@@ -168,7 +168,7 @@ clean:
 ################################################################################
 .PHONY: test
 test:
-	go test ./... -v -p 4
+	go test ./... -count 1 -v -p 16
 
 .PHONY: grc-test
 grc-test:
@@ -283,7 +283,8 @@ test-and-report: ${BINARY_PATH}
 			--junitfile unittests.xml \
 			--format standard-quiet \
 			-- \
-				-p 1 \
+				-count 1 \
+				-p 16 \
 				./pkg/... ./cmd/... \
 				$(COVERAGE_OPTS) --tags=unit
 
