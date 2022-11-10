@@ -37,16 +37,16 @@ func (apiServer *APIServer) websocket(res http.ResponseWriter, req *http.Request
 	}
 	defer conn.Close()
 	_ = make(chan *model.WebSocketEvent)
-	_, rootCancel := context.WithCancel(ctx)
+	rootCtx, rootCancel := context.WithCancel(ctx)
 
 	// listening for control messages and updating subscriptions
 	go func() {
-		var _ context.Context
+		var ctx context.Context
 		var cancel context.CancelFunc
 
 		for {
 			select {
-			case <-req.Context().Done():
+			case <-ctx.Done():
 				if cancel != nil {
 					cancel()
 				}
@@ -66,51 +66,50 @@ func (apiServer *APIServer) websocket(res http.ResponseWriter, req *http.Request
 					return
 				}
 				if op.IsData() {
-					// err = s.jsonSerializer.Decode(msg, &wc)
+					err = s.jsonSerializer.Decode(msg, &wc)
 					if err != nil {
 						log.Warn().Msgf("error from Decode: %s", err)
 						continue
 					}
 
-					// switch wc.ActionType {
-					// case "subscribe":
-					// 	// canceling previous subscription (if any)
-					// 	if cancel != nil {
-					// 		cancel()
-					// 	}
-					// 	ctx, cancel = context.WithCancel(req.Context())
-					// 	s.subscribeToEventsFeed(ctx, account.ID, events)
+					switch wc.ActionType {
+					case "subscribe":
+						// canceling previous subscription (if any)
+						if cancel != nil {
+							cancel()
+						}
+						ctx, cancel = context.WithCancel(req.Context())
+						s.subscribeToEventsFeed(ctx, account.ID, events)
 
-					// case "unsubscribe":
-					// 	if cancel != nil {
-					// 		cancel()
-					// 	}
-					// }
+					case "unsubscribe":
+						if cancel != nil {
+							cancel()
+						}
+					}
 				}
 			}
 		}
 	}()
 
-	_ = rootCancel
-	// for {
-	// 	select {
-	// 	case <-rootCtx.Done():
-	// 		// finishing work
-	// 		return
-	// 	case event, ok := <-events:
-	// 		if !ok {
-	// 			// closing conn
-	// 			return
-	// 		}
-	// 		encoded, err := s.jsonSerializer.Encode(event)
-	// 		if err != nil {
-	// 			continue
-	// 		}
-	// 		err = wsutil.WriteServerMessage(conn, ws.OpText, encoded)
-	// 		if err != nil {
-	// 			// handle error
-	// 			return
-	// 		}
-	// 	}
-	// }
+	for {
+		select {
+		case <-rootCtx.Done():
+			// finishing work
+			return
+		case event, ok := <-events:
+			if !ok {
+				// closing conn
+				return
+			}
+			encoded, err := s.jsonSerializer.Encode(event)
+			if err != nil {
+				continue
+			}
+			err = wsutil.WriteServerMessage(conn, ws.OpText, encoded)
+			if err != nil {
+				// handle error
+				return
+			}
+		}
+	}
 }
