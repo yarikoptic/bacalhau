@@ -2,6 +2,7 @@ package scenario
 
 import (
 	"context"
+	"fmt"
 
 	_ "github.com/filecoin-project/bacalhau/pkg/logger"
 	"github.com/filecoin-project/bacalhau/pkg/model"
@@ -12,6 +13,26 @@ const SimpleMountPath = "/data/file.txt"
 const SimpleOutputPath = "/output_data/output_file.txt"
 const stdoutString = "stdout"
 const CatProgram = "cat " + SimpleMountPath + " > " + SimpleOutputPath
+
+func Sleep(sleepSeconds float32) TestCase {
+	sleepSecondsStr := fmt.Sprintf("%.3f", sleepSeconds)
+
+	return TestCase{
+		Name: "sleep_" + sleepSecondsStr + "_seconds",
+		GetJobSpec: func() model.Spec {
+			return model.Spec{
+				Engine: model.EngineDocker,
+				Docker: model.JobSpecDocker{
+					Image: "ubuntu:latest",
+					Entrypoint: []string{
+						"sleep",
+						sleepSecondsStr,
+					},
+				},
+			}
+		},
+	}
+}
 
 func CatFileToStdout() TestCase {
 	ctx := context.Background()
@@ -219,7 +240,7 @@ func WasmEnvVars() TestCase {
 		ResultsChecker: singleFileResultsChecker(
 			ctx,
 			"stdout",
-			"TEST=yes\nAWESOME=definitely\n",
+			"AWESOME=definitely\nTEST=yes\n",
 			ExpectedModeEquals,
 			3, //nolint:gomnd // magic number appropriate for test
 		),

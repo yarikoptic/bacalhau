@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/filecoin-project/bacalhau/pkg/requesternode"
+
 	"github.com/filecoin-project/bacalhau/pkg/computenode"
 	"github.com/filecoin-project/bacalhau/pkg/devstack"
 	"github.com/filecoin-project/bacalhau/pkg/executor"
@@ -28,7 +30,8 @@ func SetupTest(
 	nodes int, badActors int,
 	lotusNode bool,
 	//nolint:gocritic
-	config computenode.ComputeNodeConfig,
+	computeNodeConfig computenode.ComputeNodeConfig,
+	requesterNodeConfig requesternode.RequesterNodeConfig,
 ) (*devstack.DevStack, *system.CleanupManager) {
 	require.NoError(t, system.InitConfigForTesting())
 
@@ -40,7 +43,7 @@ func SetupTest(
 		LocalNetworkLotus: lotusNode,
 	}
 
-	stack, err := devstack.NewStandardDevStack(ctx, cm, options, config)
+	stack, err := devstack.NewStandardDevStack(ctx, cm, options, computeNodeConfig, requesterNodeConfig)
 	require.NoError(t, err)
 
 	t.Cleanup(cm.Cleanup)
@@ -49,6 +52,21 @@ func SetupTest(
 	time.Sleep(time.Second)
 
 	return stack, cm
+}
+
+func prepareFolderWithFiles(t *testing.T, fileCount int) (string, error) { //nolint:unused
+	basePath := t.TempDir()
+	for i := 0; i < fileCount; i++ {
+		err := os.WriteFile(
+			fmt.Sprintf("%s/%d.txt", basePath, i),
+			[]byte(fmt.Sprintf("hello %d", i)),
+			os.ModePerm,
+		)
+		if err != nil {
+			return "", err
+		}
+	}
+	return basePath, nil
 }
 
 type DeterministicVerifierTestArgs struct {
@@ -69,53 +87,63 @@ func RunDeterministicVerifierTests(
 	) (string, error),
 ) {
 	// test that we must have more than one node to run the job
-	RunDeterministicVerifierTest(ctx, t, submitJob, DeterministicVerifierTestArgs{
-		NodeCount:      1,
-		ShardCount:     2,
-		BadActors:      0,
-		Confidence:     0,
-		ExpectedPassed: 0,
-		ExpectedFailed: 1,
+	t.Run("more-than-one-node-to-run-the-job", func(t *testing.T) {
+		RunDeterministicVerifierTest(ctx, t, submitJob, DeterministicVerifierTestArgs{
+			NodeCount:      1,
+			ShardCount:     2,
+			BadActors:      0,
+			Confidence:     0,
+			ExpectedPassed: 0,
+			ExpectedFailed: 1,
+		})
 	})
 
 	// test that if all nodes agree then all are verified
-	RunDeterministicVerifierTest(ctx, t, submitJob, DeterministicVerifierTestArgs{
-		NodeCount:      3,
-		ShardCount:     2,
-		BadActors:      0,
-		Confidence:     0,
-		ExpectedPassed: 3,
-		ExpectedFailed: 0,
+	t.Run("all-nodes-agree-then-all-are-verified", func(t *testing.T) {
+		RunDeterministicVerifierTest(ctx, t, submitJob, DeterministicVerifierTestArgs{
+			NodeCount:      3,
+			ShardCount:     2,
+			BadActors:      0,
+			Confidence:     0,
+			ExpectedPassed: 3,
+			ExpectedFailed: 0,
+		})
 	})
 
 	// test that if one node mis-behaves we catch it but the others are verified
-	RunDeterministicVerifierTest(ctx, t, submitJob, DeterministicVerifierTestArgs{
-		NodeCount:      3,
-		ShardCount:     2,
-		BadActors:      1,
-		Confidence:     0,
-		ExpectedPassed: 2,
-		ExpectedFailed: 1,
+	t.Run("one-node-misbehaves-but-others-are-verified", func(t *testing.T) {
+		RunDeterministicVerifierTest(ctx, t, submitJob, DeterministicVerifierTestArgs{
+			NodeCount:      3,
+			ShardCount:     2,
+			BadActors:      1,
+			Confidence:     0,
+			ExpectedPassed: 2,
+			ExpectedFailed: 1,
+		})
 	})
 
 	// test that is there is a draw between good and bad actors then none are verified
-	RunDeterministicVerifierTest(ctx, t, submitJob, DeterministicVerifierTestArgs{
-		NodeCount:      2,
-		ShardCount:     2,
-		BadActors:      1,
-		Confidence:     0,
-		ExpectedPassed: 0,
-		ExpectedFailed: 2,
+	t.Run("draw-between-good-and-bad-actors-then-none-are-verified", func(t *testing.T) {
+		RunDeterministicVerifierTest(ctx, t, submitJob, DeterministicVerifierTestArgs{
+			NodeCount:      2,
+			ShardCount:     2,
+			BadActors:      1,
+			Confidence:     0,
+			ExpectedPassed: 0,
+			ExpectedFailed: 2,
+		})
 	})
 
 	// test that with a larger group the confidence setting gives us a lower threshold
-	RunDeterministicVerifierTest(ctx, t, submitJob, DeterministicVerifierTestArgs{
-		NodeCount:      5,
-		ShardCount:     2,
-		BadActors:      2,
-		Confidence:     4,
-		ExpectedPassed: 0,
-		ExpectedFailed: 5,
+	t.Run("larger-group-with-confidence-gives-lower-threshold", func(t *testing.T) {
+		RunDeterministicVerifierTest(ctx, t, submitJob, DeterministicVerifierTestArgs{
+			NodeCount:      5,
+			ShardCount:     2,
+			BadActors:      2,
+			Confidence:     4,
+			ExpectedPassed: 0,
+			ExpectedFailed: 5,
+		})
 	})
 }
 
@@ -139,7 +167,7 @@ func RunDeterministicVerifierTest( //nolint:funlen
 	storageProvidersFactory := devstack.NewNoopStorageProvidersFactoryWithConfig(noop_storage.StorageConfig{
 		ExternalHooks: noop_storage.StorageConfigExternalHooks{
 			Explode: func(ctx context.Context, storageSpec model.StorageSpec) ([]model.StorageSpec, error) {
-				results := []model.StorageSpec{}
+				var results []model.StorageSpec
 				for i := 0; i < args.ShardCount; i++ {
 					results = append(results, model.StorageSpec{
 						StorageSource: model.StorageSourceIPFS,
@@ -184,6 +212,7 @@ func RunDeterministicVerifierTest( //nolint:funlen
 		cm,
 		options,
 		computenode.NewDefaultComputeNodeConfig(),
+		requesternode.NewDefaultRequesterNodeConfig(),
 		injector,
 	)
 	require.NoError(t, err)

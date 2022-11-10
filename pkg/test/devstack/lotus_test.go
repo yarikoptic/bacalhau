@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/filecoin-project/bacalhau/pkg/requesternode"
+
 	"github.com/filecoin-project/bacalhau/pkg/computenode"
 	"github.com/filecoin-project/bacalhau/pkg/devstack"
 	"github.com/filecoin-project/bacalhau/pkg/job"
@@ -41,22 +43,22 @@ func (s *lotusNodeSuite) TestLotusNode() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 
-	testCase := scenario.CatFileToStdout()
+	testCase := scenario.WasmHelloWorld()
 	nodeCount := 1
 
-	stack, _ := SetupTest(ctx, s.T(), nodeCount, 0, true, computenode.NewDefaultComputeNodeConfig())
+	stack, _ := SetupTest(ctx, s.T(), nodeCount, 0, true, computenode.NewDefaultComputeNodeConfig(), requesternode.NewDefaultRequesterNodeConfig())
 
 	nodeIDs, err := stack.GetNodeIds()
 	require.NoError(s.T(), err)
 
-	inputStorageList, err := testCase.SetupStorage(ctx, model.StorageSourceIPFS, devstack.ToIPFSClients(stack.Nodes[:nodeCount])...)
+	contextStorageList, err := testCase.SetupContext(ctx, model.StorageSourceIPFS, devstack.ToIPFSClients(stack.Nodes[:nodeCount])...)
 	require.NoError(s.T(), err)
 
 	j := &model.Job{}
 	j.Spec = testCase.GetJobSpec()
 	j.Spec.Verifier = model.VerifierNoop
 	j.Spec.Publisher = model.PublisherFilecoin
-	j.Spec.Inputs = inputStorageList
+	j.Spec.Contexts = contextStorageList
 	j.Spec.Outputs = testCase.Outputs
 	j.Deal = model.Deal{
 		Concurrency: 1,

@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/filecoin-project/bacalhau/pkg/requesternode"
+
 	"github.com/filecoin-project/bacalhau/pkg/computenode"
 	"github.com/filecoin-project/bacalhau/pkg/devstack"
 	"github.com/filecoin-project/bacalhau/pkg/job"
@@ -33,23 +35,11 @@ func TestComboDriverSuite(t *testing.T) {
 	suite.Run(t, new(ComboDriverSuite))
 }
 
-// Before all suite
-func (suite *ComboDriverSuite) SetupSuite() {
-
-}
-
 // Before each test
 func (suite *ComboDriverSuite) SetupTest() {
 	logger.ConfigureTestLogging(suite.T())
 	err := system.InitConfigForTesting()
 	require.NoError(suite.T(), err)
-}
-
-func (suite *ComboDriverSuite) TearDownTest() {
-}
-
-func (suite *ComboDriverSuite) TearDownSuite() {
-
 }
 
 // Test that the combo driver gives preference to the filecoin unsealed driver
@@ -90,7 +80,7 @@ func (suite *ComboDriverSuite) TestComboDriver() {
 			FilecoinUnsealedPath: unsealedPath,
 		}
 
-		stack, err := devstack.NewStandardDevStack(ctx, cm, options, computenode.NewDefaultComputeNodeConfig())
+		stack, err := devstack.NewStandardDevStack(ctx, cm, options, computenode.NewDefaultComputeNodeConfig(), requesternode.NewDefaultRequesterNodeConfig())
 		require.NoError(suite.T(), err)
 
 		if !unsealedMode {

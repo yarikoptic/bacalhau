@@ -12,6 +12,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/filecoin-project/bacalhau/pkg/requesternode"
+
 	"github.com/filecoin-project/bacalhau/pkg/computenode"
 	"github.com/filecoin-project/bacalhau/pkg/devstack"
 	"github.com/filecoin-project/bacalhau/pkg/ipfs"
@@ -72,21 +74,6 @@ func prepareFolderWithFoldersAndFiles(t *testing.T, folderCount, fileCount int) 
 			if err != nil {
 				return "", err
 			}
-		}
-	}
-	return basePath, nil
-}
-
-func prepareFolderWithFiles(t *testing.T, fileCount int) (string, error) {
-	basePath := t.TempDir()
-	for i := 0; i < fileCount; i++ {
-		err := os.WriteFile(
-			fmt.Sprintf("%s/%d.txt", basePath, i),
-			[]byte(fmt.Sprintf("hello %d", i)),
-			0644,
-		)
-		if err != nil {
-			return "", err
 		}
 	}
 	return basePath, nil
@@ -174,6 +161,7 @@ func (suite *ShardingSuite) TestEndToEnd() {
 		0,
 		false,
 		computenode.NewDefaultComputeNodeConfig(),
+		requesternode.NewDefaultRequesterNodeConfig(),
 	)
 
 	t := system.GetTracer()
@@ -323,6 +311,7 @@ func (suite *ShardingSuite) TestNoShards() {
 		0,
 		false,
 		computenode.NewDefaultComputeNodeConfig(),
+		requesternode.NewDefaultRequesterNodeConfig(),
 	)
 
 	t := system.GetTracer()
@@ -386,6 +375,7 @@ func (suite *ShardingSuite) TestExplodeVideos() {
 		0,
 		false,
 		computenode.NewDefaultComputeNodeConfig(),
+		requesternode.NewDefaultRequesterNodeConfig(),
 	)
 
 	t := system.GetTracer()
