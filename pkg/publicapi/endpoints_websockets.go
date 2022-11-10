@@ -3,12 +3,14 @@ package publicapi
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"github.com/filecoin-project/bacalhau/pkg/model"
 	"github.com/filecoin-project/bacalhau/pkg/system"
 	"github.com/pkg/errors"
 
 	"github.com/gobwas/ws"
+	"github.com/gobwas/ws/wsutil"
 	"github.com/rs/zerolog/log"
 )
 
@@ -40,56 +42,53 @@ func (apiServer *APIServer) websocket(res http.ResponseWriter, req *http.Request
 	// listening for control messages and updating subscriptions
 	go func() {
 		var _ context.Context
-		var _ context.CancelFunc
+		var cancel context.CancelFunc
 
-		// 	for {
-		// 		select {
-		// 		case <-req.Context().Done():
-		// 			if cancel != nil {
-		// 				cancel()
-		// 			}
-		// 			return
-		// 		default:
-		// 			msg, op, err := wsutil.ReadClientData(conn)
-		// 			if err != nil {
-		// 				if !strings.Contains(err.Error(), "EOF") && !strings.Contains(err.Error(), "closed") {
-		// 					log.Warn().Msgf("error from wsutil.ReadClientData(conn): %s", err)
-		// 				}
+		for {
+			select {
+			case <-req.Context().Done():
+				if cancel != nil {
+					cancel()
+				}
+				return
+			default:
+				_, op, err := wsutil.ReadClientData(conn)
+				if err != nil {
+					if !strings.Contains(err.Error(), "EOF") && !strings.Contains(err.Error(), "closed") {
+						log.Warn().Msgf("error from wsutil.ReadClientData(conn): %s", err)
+					}
 
-		// 				// handle error
-		// 				if cancel != nil {
-		// 					cancel()
-		// 				}
-		// 				rootCancel()
-		// 				return
-		// 			}
-		// 			if op.IsData() {
+					// handle error
+					if cancel != nil {
+						cancel()
+					}
+					rootCancel()
+					return
+				}
+				if op.IsData() {
+					// err = s.jsonSerializer.Decode(msg, &wc)
+					if err != nil {
+						log.Warn().Msgf("error from Decode: %s", err)
+						continue
+					}
 
-		// 				err = s.jsonSerializer.Decode(msg, &wc)
-		// 				if err != nil {
-		// 					log.Warn().Msgf("error from Decode: %s", err)
-		// 					continue
-		// 				}
+					// switch wc.ActionType {
+					// case "subscribe":
+					// 	// canceling previous subscription (if any)
+					// 	if cancel != nil {
+					// 		cancel()
+					// 	}
+					// 	ctx, cancel = context.WithCancel(req.Context())
+					// 	s.subscribeToEventsFeed(ctx, account.ID, events)
 
-		// 				switch wc.ActionType {
-		// 				case "subscribe":
-		// 					// canceling previous subscription (if any)
-		// 					if cancel != nil {
-		// 						cancel()
-		// 					}
-		// 					ctx, cancel = context.WithCancel(req.Context())
-		// 					s.subscribeToEventsFeed(ctx, account.ID, events)
-
-		// 				case "unsubscribe":
-		// 					if cancel != nil {
-		// 						cancel()
-		// 					}
-		// 				}
-
-		// 			}
-		// 		}
-
-		// 	}
+					// case "unsubscribe":
+					// 	if cancel != nil {
+					// 		cancel()
+					// 	}
+					// }
+				}
+			}
+		}
 	}()
 
 	_ = rootCancel
