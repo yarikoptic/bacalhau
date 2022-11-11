@@ -2,16 +2,13 @@ package docker
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"runtime/debug"
 	"strings"
-	"sync"
 
 	"github.com/pkg/errors"
-	"golang.org/x/sync/errgroup"
 
 	dockertypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -109,67 +106,36 @@ func (e *Executor) RunShard(
 	system.AddJobIDFromBaggageToSpan(ctx, span)
 	system.AddNodeIDFromBaggageToSpan(ctx, span)
 
-	// the actual mounts we will give to the container
-	// these are paths for both input and output data
-	mounts := []mount.Mount{}
-	addMountMutex := sync.Mutex{}
-	addMountWaitGroup := new(errgroup.Group)
-
-	var err error
-
 	shardStorageSpec, err := jobutils.GetShardStorageSpec(ctx, shard, e.StorageProvider)
 	if err != nil {
 		return &model.RunCommandResult{}, err
 	}
 
-	addMountHandler := func(mount mount.Mount) {
-		addMountMutex.Lock()
-		defer addMountMutex.Unlock()
-		mounts = append(mounts, mount)
-	}
-
 	inputStorageSpecs := []model.StorageSpec{}
-
 	inputStorageSpecs = append(inputStorageSpecs, shard.Job.Spec.Contexts...)
 	inputStorageSpecs = append(inputStorageSpecs, shardStorageSpec...)
 
-	for _, inputStorageSpec := range inputStorageSpecs {
-		spec := inputStorageSpec // https://golang.org/doc/faq#closures_and_goroutines
-
-		addStorageSpec := func() error {
-			var storageProvider storage.Storage
-			var volumeMount storage.StorageVolume
-			storageProvider, err = e.getStorage(ctx, spec.StorageSource)
-			if err != nil {
-				return err
-			}
-
-			volumeMount, err = storageProvider.PrepareStorage(ctx, spec)
-			if err != nil {
-				return err
-			}
-
-			if volumeMount.Type == storage.StorageVolumeConnectorBind {
-				log.Ctx(ctx).Trace().Msgf("Input Volume: %+v %+v", spec, volumeMount)
-				addMountHandler(mount.Mount{
-					Type: mount.TypeBind,
-					// this is an input volume so is read only
-					ReadOnly: true,
-					Source:   volumeMount.Source,
-					Target:   volumeMount.Target,
-				})
-			} else {
-				return fmt.Errorf("unknown storage volume type: %s", volumeMount.Type)
-			}
-			return nil
-		}
-
-		addMountWaitGroup.Go(addStorageSpec)
-	}
-
-	err = addMountWaitGroup.Wait()
+	inputVolumes, err := storage.ParallelPrepareStorage(ctx, e.StorageProvider, inputStorageSpecs)
 	if err != nil {
 		return &model.RunCommandResult{}, err
+	}
+
+	// the actual mounts we will give to the container
+	// these are paths for both input and output data
+	mounts := []mount.Mount{}
+	for spec, volumeMount := range inputVolumes {
+		if volumeMount.Type == storage.StorageVolumeConnectorBind {
+			log.Ctx(ctx).Trace().Msgf("Input Volume: %+v %+v", spec, volumeMount)
+			mounts = append(mounts, mount.Mount{
+				Type: mount.TypeBind,
+				// this is an input volume so is read only
+				ReadOnly: true,
+				Source:   volumeMount.Source,
+				Target:   volumeMount.Target,
+			})
+		} else {
+			return &model.RunCommandResult{}, fmt.Errorf("unknown storage volume type: %s", volumeMount.Type)
+		}
 	}
 
 	// for this phase of the outputs we ignore the engine because it's just about collecting the
@@ -223,7 +189,7 @@ func (e *Executor) RunShard(
 	// TODO: check if this will overwrite a user supplied version of this value
 	// (which is what we actually want to happen)
 	log.Ctx(ctx).Debug().Msgf("Job Spec: %+v", shard.Job.Spec)
-	jsonJobSpec, err := json.Marshal(shard.Job.Spec)
+	jsonJobSpec, err := model.JSONMarshalWithMax(shard.Job.Spec)
 	if err != nil {
 		return &model.RunCommandResult{ErrorMsg: err.Error()}, err
 	}
@@ -362,6 +328,10 @@ func (e *Executor) RunShard(
 	log.Ctx(ctx).Debug().Msgf("Returning RunOutput %+v", runResult)
 
 	return runResult, err
+}
+
+func (e *Executor) CancelShard(ctx context.Context, shard model.JobShard) error {
+	return docker.StopContainer(ctx, e.Client, e.jobContainerName(shard))
 }
 
 func returnStdErrWithErr(msg string, err error) *model.RunCommandResult {

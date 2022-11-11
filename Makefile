@@ -168,22 +168,28 @@ clean:
 ################################################################################
 .PHONY: test
 test:
-	go test ./... -v -p 4
+# unittests parallelize well (default go test behavior is to parallelize)
+	go test ./... -v
+
+.PHONY: integration-test
+integration-test:
+# integration tests parallelize less well (hence -p 1)
+	go test ./... -v --tags=integration -p 1
 
 .PHONY: grc-test
 grc-test:
-	grc go test ./... -v -p 4
+	grc go test ./... -v
 .PHONY: grc-test-short
 grc-test-short:
 	grc go test ./... -test.short -v
 
 .PHONY: test-debug
 test-debug:
-	LOG_LEVEL=debug go test ./... -v -p 4
+	LOG_LEVEL=debug go test ./... -v
 
 .PHONY: grc-test-debug
 grc-test-debug:
-	LOG_LEVEL=debug grc go test ./... -v -p 4
+	LOG_LEVEL=debug grc go test ./... -v
 
 .PHONY: test-one
 test-one:

@@ -1,3 +1,5 @@
+//go:build !integration
+
 package job
 
 import (
@@ -23,21 +25,9 @@ type JobUtilSuite struct {
 	suite.Suite
 }
 
-// Before all suite
-func (s *JobUtilSuite) SetupAllSuite() {
-
-}
-
 // Before each test
 func (s *JobUtilSuite) SetupTest() {
 	logger.ConfigureTestLogging(s.T())
-}
-
-func (s *JobUtilSuite) TearDownTest() {
-}
-
-func (s *JobUtilSuite) TearDownAllSuite() {
-
 }
 
 func (s *JobUtilSuite) TestRun_URLs() {

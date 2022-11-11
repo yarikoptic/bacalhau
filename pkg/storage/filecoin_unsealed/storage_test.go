@@ -1,3 +1,5 @@
+//go:build !integration
+
 package filecoinunsealed
 
 import (
@@ -40,11 +42,6 @@ func TestFilecoinUnsealedSuite(t *testing.T) {
 	suite.Run(t, new(FilecoinUnsealedSuite))
 }
 
-// Before all suite
-func (suite *FilecoinUnsealedSuite) SetupAllSuite() {
-
-}
-
 // Before each test
 func (suite *FilecoinUnsealedSuite) SetupTest() {
 	var setupErr error
@@ -54,13 +51,6 @@ func (suite *FilecoinUnsealedSuite) SetupTest() {
 	tempDir = suite.T().TempDir()
 	driver, setupErr = NewStorage(cm, filepath.Join(tempDir, "{{.CID}}"))
 	require.NoError(suite.T(), setupErr)
-}
-
-func (suite *FilecoinUnsealedSuite) TearDownTest() {
-}
-
-func (suite *FilecoinUnsealedSuite) TearDownAllSuite() {
-
 }
 
 func (suite *FilecoinUnsealedSuite) TestIsInstalled() {

@@ -1,4 +1,4 @@
-//go:build !(unit && (windows || darwin))
+//go:build integration
 
 package devstack
 
@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/filecoin-project/bacalhau/pkg/requesternode"
+
 	"github.com/filecoin-project/bacalhau/pkg/computenode"
 	"github.com/filecoin-project/bacalhau/pkg/devstack"
 	"github.com/filecoin-project/bacalhau/pkg/job"
@@ -19,6 +21,7 @@ import (
 	"github.com/filecoin-project/bacalhau/pkg/publisher/filecoin_lotus/api"
 	"github.com/filecoin-project/bacalhau/pkg/system"
 	"github.com/filecoin-project/bacalhau/pkg/test/scenario"
+	testutils "github.com/filecoin-project/bacalhau/pkg/test/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -33,6 +36,8 @@ func TestLotusNodeSuite(t *testing.T) {
 }
 
 func (s *lotusNodeSuite) SetupTest() {
+	testutils.MustHaveDocker(s.T())
+
 	logger.ConfigureTestLogging(s.T())
 	require.NoError(s.T(), system.InitConfigForTesting())
 }
@@ -41,19 +46,19 @@ func (s *lotusNodeSuite) TestLotusNode() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 
-	testCase := scenario.WasmHelloWorld()
+	testCase := scenario.WasmHelloWorld
 	nodeCount := 1
 
-	stack, _ := SetupTest(ctx, s.T(), nodeCount, 0, true, computenode.NewDefaultComputeNodeConfig())
+	stack, _ := SetupTest(ctx, s.T(), nodeCount, 0, true, computenode.NewDefaultComputeNodeConfig(), requesternode.NewDefaultRequesterNodeConfig())
 
 	nodeIDs, err := stack.GetNodeIds()
 	require.NoError(s.T(), err)
 
-	contextStorageList, err := testCase.SetupContext(ctx, model.StorageSourceIPFS, devstack.ToIPFSClients(stack.Nodes[:nodeCount])...)
+	contextStorageList, err := testCase.Contexts(ctx, model.StorageSourceIPFS, devstack.ToIPFSClients(stack.Nodes[:nodeCount])...)
 	require.NoError(s.T(), err)
 
 	j := &model.Job{}
-	j.Spec = testCase.GetJobSpec()
+	j.Spec = testCase.Spec
 	j.Spec.Verifier = model.VerifierNoop
 	j.Spec.Publisher = model.PublisherFilecoin
 	j.Spec.Contexts = contextStorageList

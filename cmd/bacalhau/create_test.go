@@ -1,3 +1,5 @@
+//go:build !integration
+
 package bacalhau
 
 import (
@@ -12,12 +14,12 @@ import (
 	"time"
 
 	"github.com/filecoin-project/bacalhau/pkg/logger"
+	"github.com/filecoin-project/bacalhau/pkg/model"
 	"github.com/filecoin-project/bacalhau/pkg/publicapi"
 	"github.com/filecoin-project/bacalhau/pkg/system"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"sigs.k8s.io/yaml"
 )
 
 type CreateSuite struct {
@@ -29,24 +31,11 @@ func TestCreateSuite(t *testing.T) {
 	suite.Run(t, new(CreateSuite))
 }
 
-// before all the s
-func (s *CreateSuite) SetupSuite() {
-
-}
-
 // before each test
 func (s *CreateSuite) SetupTest() {
 	logger.ConfigureTestLogging(s.T())
 	require.NoError(s.T(), system.InitConfigForTesting())
 	s.rootCmd = RootCmd
-}
-
-func (s *CreateSuite) TearDownTest() {
-
-}
-
-func (s *CreateSuite) TearDownSuite() {
-
 }
 
 func (s *CreateSuite) TestCreateJSON_GenericSubmit() {
@@ -206,7 +195,7 @@ func (s *CreateSuite) TestCreateDontPanicOnNoInput() {
 
 	errorOutputMap := make(map[string]interface{})
 	for _, o := range strings.Split(commandReturnValue.out, "\n") {
-		err := yaml.Unmarshal([]byte(o), &errorOutputMap)
+		err := model.YAMLUnmarshalWithMax([]byte(o), &errorOutputMap)
 		if err != nil {
 			continue
 		}
@@ -241,7 +230,7 @@ func (s *CreateSuite) TestCreateDontPanicOnEmptyFile() {
 
 	errorOutputMap := make(map[string]interface{})
 	for _, o := range strings.Split(commandReturnValue.out, "\n") {
-		err := yaml.Unmarshal([]byte(o), &errorOutputMap)
+		err := model.YAMLUnmarshalWithMax([]byte(o), &errorOutputMap)
 		if err != nil {
 			continue
 		}

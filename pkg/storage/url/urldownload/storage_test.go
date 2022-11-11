@@ -1,3 +1,5 @@
+//go:build !integration
+
 package urldownload
 
 import (
@@ -31,21 +33,10 @@ func TestStorageSuite(t *testing.T) {
 	suite.Run(t, new(StorageSuite))
 }
 
-// Before all suite
-func (s *StorageSuite) SetupSuite() {
-}
-
 // Before each test
 func (s *StorageSuite) SetupTest() {
 	logger.ConfigureTestLogging(s.T())
 	require.NoError(s.T(), system.InitConfigForTesting())
-}
-
-func (s *StorageSuite) TearDownTest() {
-}
-
-func (s *StorageSuite) TearDownSuite() {
-
 }
 
 func (s *StorageSuite) TestNewStorageProvider() {

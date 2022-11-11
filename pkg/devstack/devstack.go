@@ -73,6 +73,7 @@ func NewDevStackForRunLocal(
 		cm,
 		options,
 		computeNodeConfig,
+		requesternode.NewDefaultRequesterNodeConfig(),
 	)
 }
 
@@ -81,8 +82,9 @@ func NewStandardDevStack(
 	cm *system.CleanupManager,
 	options DevStackOptions,
 	computeNodeConfig computenode.ComputeNodeConfig,
+	requesterNodeConfig requesternode.RequesterNodeConfig,
 ) (*DevStack, error) {
-	return NewDevStack(ctx, cm, options, computeNodeConfig, node.NewStandardNodeDependencyInjector())
+	return NewDevStack(ctx, cm, options, computeNodeConfig, requesterNodeConfig, node.NewStandardNodeDependencyInjector())
 }
 
 func NewNoopDevStack(
@@ -90,8 +92,9 @@ func NewNoopDevStack(
 	cm *system.CleanupManager,
 	options DevStackOptions,
 	computeNodeConfig computenode.ComputeNodeConfig,
+	requesterNodeConfig requesternode.RequesterNodeConfig,
 ) (*DevStack, error) {
-	return NewDevStack(ctx, cm, options, computeNodeConfig, NewNoopNodeDependencyInjector())
+	return NewDevStack(ctx, cm, options, computeNodeConfig, requesterNodeConfig, NewNoopNodeDependencyInjector())
 }
 
 //nolint:funlen,gocyclo
@@ -100,6 +103,7 @@ func NewDevStack(
 	cm *system.CleanupManager,
 	options DevStackOptions,
 	computeNodeConfig computenode.ComputeNodeConfig,
+	requesterNodeConfig requesternode.RequesterNodeConfig,
 	injector node.NodeDependencyInjector,
 ) (*DevStack, error) {
 	ctx, span := system.GetTracer().Start(ctx, "pkg/devstack.newdevstack")
@@ -234,7 +238,7 @@ func NewDevStack(
 			APIPort:              apiPort,
 			MetricsPort:          metricsPort,
 			ComputeNodeConfig:    computeNodeConfig,
-			RequesterNodeConfig:  requesternode.RequesterNodeConfig{},
+			RequesterNodeConfig:  requesterNodeConfig,
 			IsBadActor:           isBadActor,
 		}
 
@@ -284,11 +288,11 @@ func NewDevStack(
 	cpuprofile := path.Join(os.TempDir(), "bacalhau-devstack-cpu.prof")
 	f, err := os.Create(cpuprofile)
 	if err != nil {
-		log.Fatal().Msgf("could not create CPU profile: %s", err) //nolint:gocritic
+		log.Debug().Msgf("could not create CPU profile: %s", err) //nolint:gocritic
 	}
 	defer closer.CloseWithLogOnError("cpuprofile", f)
 	if err := pprof.StartCPUProfile(f); err != nil {
-		log.Fatal().Msgf("could not start CPU profile: %s", err) //nolint:gocritic
+		log.Debug().Msgf("could not start CPU profile: %s", err) //nolint:gocritic
 	}
 
 	return &DevStack{
@@ -323,9 +327,7 @@ func createIPFSNode(ctx context.Context,
 	return ipfsNode, nil
 }
 
-func (stack *DevStack) PrintNodeInfo() (string, error) {
-	ctx := context.Background()
-
+func (stack *DevStack) PrintNodeInfo(ctx context.Context) (string, error) {
 	if !config.DevstackGetShouldPrintInfo() {
 		return "", nil
 	}
@@ -341,7 +343,7 @@ func (stack *DevStack) PrintNodeInfo() (string, error) {
 `
 	for nodeIndex, node := range stack.Nodes {
 		swarmAddrrs := ""
-		swarmAddresses, err := node.IPFSClient.SwarmAddresses(context.Background())
+		swarmAddresses, err := node.IPFSClient.SwarmAddresses(ctx)
 		if err != nil {
 			return "", fmt.Errorf("cannot get swarm addresses for node %d", nodeIndex)
 		} else {
@@ -403,6 +405,13 @@ func (stack *DevStack) GetNode(ctx context.Context, nodeID string) (
 	}
 
 	return nil, fmt.Errorf("node not found: %s", nodeID)
+}
+func (stack *DevStack) IPFSClients() []*ipfs.Client {
+	clients := make([]*ipfs.Client, 0, len(stack.Nodes))
+	for _, node := range stack.Nodes {
+		clients = append(clients, node.IPFSClient)
+	}
+	return clients
 }
 
 func (stack *DevStack) GetNodeIds() ([]string, error) {

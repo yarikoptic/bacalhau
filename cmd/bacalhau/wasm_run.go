@@ -31,6 +31,7 @@ func init() { //nolint:gochecknoinits // idiomatic for cobra commands
 	wasmJob, _ = model.NewJobWithSaneProductionDefaults()
 	wasmJob.Spec.Engine = model.EngineWasm
 	wasmJob.Spec.Verifier = model.VerifierDeterministic
+	wasmJob.Spec.Timeout = DefaultTimeout.Seconds()
 	wasmJob.Spec.Wasm.EntryPoint = "_start"
 	wasmJob.Spec.Wasm.EnvironmentVariables = map[string]string{}
 	wasmJob.Spec.Outputs = []model.StorageSpec{
@@ -69,6 +70,14 @@ func init() { //nolint:gochecknoinits // idiomatic for cobra commands
 		&wasmJob.Deal.Confidence, "confidence", wasmJob.Deal.Confidence,
 		`The minimum number of nodes that must agree on a verification result`,
 	)
+	runWasmCommand.PersistentFlags().IntVar(
+		&wasmJob.Deal.MinBids, "min-bids", wasmJob.Deal.MinBids,
+		`Minimum number of bids that must be received before concurrency-many bids will be accepted (at random)`,
+	)
+	runWasmCommand.PersistentFlags().Float64Var(
+		&wasmJob.Spec.Timeout, "timeout", wasmJob.Spec.Timeout,
+		`Job execution timeout in seconds (e.g. 300 for 5 minutes and 0.1 for 100ms)`,
+	)
 	wasmCmd.PersistentFlags().StringVar(
 		&wasmJob.Spec.Wasm.EntryPoint, "entry-point", wasmJob.Spec.Wasm.EntryPoint,
 		`The name of the WASM function in the entry module to call. This should be a zero-parameter zero-result function that 
@@ -93,7 +102,7 @@ func init() { //nolint:gochecknoinits // idiomatic for cobra commands
 var wasmCmd = &cobra.Command{
 	Use:   "wasm",
 	Short: "Run and prepare WASM jobs on the network",
-	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+	PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 		// Check that the server version is compatible with the client version
 		serverVersion, _ := GetAPIClient().Version(cmd.Context()) // Ok if this fails, version validation will skip
 		if err := ensureValidVersion(cmd.Context(), version.Get(), serverVersion); err != nil {

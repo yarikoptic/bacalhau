@@ -2,7 +2,6 @@ package bacalhau
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -131,13 +130,12 @@ var listCmd = &cobra.Command{
 	Long:    listLong,
 	Example: listExample,
 	PreRun:  applyPorcelainLogLevel,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		cm := system.NewCleanupManager()
 		defer cm.Cleanup()
 		ctx := cmd.Context()
 
-		t := system.GetTracer()
-		ctx, rootSpan := system.NewRootSpan(ctx, t, "cmd/bacalhau/list")
+		ctx, rootSpan := system.NewRootSpan(ctx, system.GetTracer(), "cmd/bacalhau/list")
 		defer rootSpan.End()
 		cm.RegisterCallback(system.CleanupTraceProvider)
 
@@ -159,9 +157,9 @@ var listCmd = &cobra.Command{
 		numberInTable := system.Min(OL.MaxJobs, len(jobs))
 		log.Debug().Msgf("Number of jobs printing: %d", numberInTable)
 
+		var msgBytes []byte
 		if OL.OutputFormat == JSONFormat {
-			var msgBytes []byte
-			msgBytes, err = json.MarshalIndent(jobs, "", "    ")
+			msgBytes, err = model.JSONMarshalWithMax(jobs)
 			if err != nil {
 				Fatal(fmt.Sprintf("Error marshaling jobs to JSON: %s", err), 1)
 			}

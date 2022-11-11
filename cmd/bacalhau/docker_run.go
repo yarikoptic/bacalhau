@@ -61,6 +61,7 @@ type DockerRunOptions struct {
 	Concurrency      int      // Number of concurrent jobs to run
 	Confidence       int      // Minimum number of nodes that must agree on a verification result
 	MinBids          int      // Minimum number of bids before they will be accepted (at random)
+	Timeout          float64  // Job execution timeout in seconds
 	CPU              string
 	Memory           string
 	GPU              string
@@ -96,6 +97,7 @@ func NewDockerRunOptions() *DockerRunOptions {
 		Concurrency:        1,
 		Confidence:         0,
 		MinBids:            0, // 0 means no minimum before bidding
+		Timeout:            DefaultTimeout.Seconds(),
 		CPU:                "",
 		Memory:             "",
 		GPU:                "",
@@ -163,6 +165,10 @@ func init() { //nolint:gochecknoinits,funlen // Using init in cobra command is i
 		&ODR.MinBids, "min-bids", ODR.MinBids,
 		`Minimum number of bids that must be received before concurrency-many bids will be accepted (at random)`,
 	)
+	dockerRunCmd.PersistentFlags().Float64Var(
+		&ODR.Timeout, "timeout", ODR.Timeout,
+		`Job execution timeout in seconds (e.g. 300 for 5 minutes and 0.1 for 100ms)`,
+	)
 	dockerRunCmd.PersistentFlags().StringVar(
 		&ODR.CPU, "cpu", ODR.CPU,
 		`Job CPU cores (e.g. 500m, 2, 8).`,
@@ -217,7 +223,7 @@ func init() { //nolint:gochecknoinits,funlen // Using init in cobra command is i
 var dockerCmd = &cobra.Command{
 	Use:   "docker",
 	Short: "Run a docker job on the network (see run subcommand)",
-	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+	PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 		// Check that the server version is compatible with the client version
 		serverVersion, _ := GetAPIClient().Version(cmd.Context()) // Ok if this fails, version validation will skip
 		if err := ensureValidVersion(cmd.Context(), version.Get(), serverVersion); err != nil {
@@ -348,6 +354,7 @@ func CreateJob(ctx context.Context,
 		odr.Concurrency,
 		odr.Confidence,
 		odr.MinBids,
+		odr.Timeout,
 		odr.Labels,
 		odr.WorkingDirectory,
 		odr.ShardingGlobPattern,

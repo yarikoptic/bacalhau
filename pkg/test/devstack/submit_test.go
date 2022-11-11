@@ -1,8 +1,12 @@
+//go:build integration
+
 package devstack
 
 import (
 	"context"
 	"testing"
+
+	"github.com/filecoin-project/bacalhau/pkg/requesternode"
 
 	"github.com/filecoin-project/bacalhau/pkg/computenode"
 	"github.com/filecoin-project/bacalhau/pkg/logger"
@@ -24,23 +28,11 @@ func TestDevstackSubmitSuite(t *testing.T) {
 	suite.Run(t, new(DevstackSubmitSuite))
 }
 
-// Before all suite
-func (suite *DevstackSubmitSuite) SetupSuite() {
-
-}
-
 // Before each test
 func (suite *DevstackSubmitSuite) SetupTest() {
 	logger.ConfigureTestLogging(suite.T())
 	err := system.InitConfigForTesting()
 	require.NoError(suite.T(), err)
-}
-
-func (suite *DevstackSubmitSuite) TearDownTest() {
-}
-
-func (suite *DevstackSubmitSuite) TearDownSuite() {
-
 }
 
 func (suite *DevstackSubmitSuite) TestEmptySpec() {
@@ -54,6 +46,7 @@ func (suite *DevstackSubmitSuite) TestEmptySpec() {
 		0,
 		false,
 		computenode.NewDefaultComputeNodeConfig(),
+		requesternode.NewDefaultRequesterNodeConfig(),
 	)
 
 	t := system.GetTracer()

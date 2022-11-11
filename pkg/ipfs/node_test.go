@@ -1,3 +1,5 @@
+//go:build !integration
+
 package ipfs
 
 import (
@@ -24,22 +26,10 @@ type NodeSuite struct {
 	suite.Suite
 }
 
-// Before all suite
-func (suite *NodeSuite) SetupAllSuite() {
-
-}
-
 // Before each test
 func (suite *NodeSuite) SetupTest() {
 	logger.ConfigureTestLogging(suite.T())
 	require.NoError(suite.T(), system.InitConfigForTesting())
-}
-
-func (suite *NodeSuite) TearDownTest() {
-}
-
-func (suite *NodeSuite) TearDownAllSuite() {
-
 }
 
 // TestFunctionality tests the in-process IPFS node/client as follows:

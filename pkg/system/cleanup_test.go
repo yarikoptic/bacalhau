@@ -1,3 +1,5 @@
+//go:build !integration
+
 package system
 
 import (
@@ -18,22 +20,10 @@ func TestSystemCleanupSuite(t *testing.T) {
 	suite.Run(t, new(SystemCleanupSuite))
 }
 
-// Before all suite
-func (suite *SystemCleanupSuite) SetupAllSuite() {
-
-}
-
 // Before each test
 func (suite *SystemCleanupSuite) SetupTest() {
 	logger.ConfigureTestLogging(suite.T())
 	require.NoError(suite.T(), InitConfigForTesting())
-}
-
-func (suite *SystemCleanupSuite) TearDownTest() {
-}
-
-func (suite *SystemCleanupSuite) TearDownAllSuite() {
-
 }
 
 func (suite *SystemCleanupSuite) TestCleanupManager() {

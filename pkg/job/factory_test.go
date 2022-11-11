@@ -1,3 +1,5 @@
+//go:build !integration
+
 package job
 
 import (
@@ -23,21 +25,9 @@ type JobFactorySuite struct {
 	suite.Suite
 }
 
-// Before all suite
-func (suite *JobFactorySuite) SetupAllSuite() {
-
-}
-
 // Before each test
 func (suite *JobFactorySuite) SetupTest() {
 	logger.ConfigureTestLogging(suite.T())
-}
-
-func (suite *JobFactorySuite) TearDownTest() {
-}
-
-func (suite *JobFactorySuite) TearDownAllSuite() {
-
 }
 
 func (suite *JobFactorySuite) TestRun_Outputs() {
@@ -94,6 +84,7 @@ func (suite *JobFactorySuite) TestRun_Outputs() {
 					1,          // concurrency
 					0,          // confidence
 					0,          // min bids
+					300,        // timeout
 					[]string{}, // annotations
 					"",         // working dir
 					"",         // sharding base path

@@ -1,3 +1,5 @@
+//go:build !integration
+
 package bacalhau
 
 import (
@@ -25,22 +27,10 @@ type UtilsSuite struct {
 	rootCmd *cobra.Command
 }
 
-// Before all suite
-func (s *UtilsSuite) SetupAllSuite() {
-
-}
-
 // Before each test
 func (s *UtilsSuite) SetupTest() {
 	s.rootCmd = RootCmd
 	logger.ConfigureTestLogging(s.T())
-}
-
-func (s *UtilsSuite) TearDownTest() {
-}
-
-func (s *UtilsSuite) TearDownAllSuite() {
-
 }
 
 func (s *UtilsSuite) TestSafeRegex() {

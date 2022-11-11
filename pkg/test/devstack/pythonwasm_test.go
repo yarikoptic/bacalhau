@@ -1,4 +1,4 @@
-//go:build !(unit && (windows || darwin))
+//go:build integration
 
 package devstack
 
@@ -12,8 +12,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/filecoin-project/bacalhau/pkg/requesternode"
+
 	"github.com/filecoin-project/bacalhau/pkg/devstack"
 	"github.com/filecoin-project/bacalhau/pkg/logger"
+	testutils "github.com/filecoin-project/bacalhau/pkg/test/utils"
 
 	cmd "github.com/filecoin-project/bacalhau/cmd/bacalhau"
 	"github.com/filecoin-project/bacalhau/pkg/computenode"
@@ -36,23 +39,13 @@ func TestDevstackPythonWASMSuite(t *testing.T) {
 	suite.Run(t, new(DevstackPythonWASMSuite))
 }
 
-// Before all suite
-func (s *DevstackPythonWASMSuite) SetupSuite() {
-
-}
-
 // Before each test
 func (s *DevstackPythonWASMSuite) SetupTest() {
+	testutils.MustHaveDocker(s.T())
+
 	logger.ConfigureTestLogging(s.T())
 	err := system.InitConfigForTesting()
 	require.NoError(s.T(), err)
-}
-
-func (s *DevstackPythonWASMSuite) TearDownTest() {
-}
-
-func (s *DevstackPythonWASMSuite) TearDownSuite() {
-
 }
 
 // full end-to-end test of python/wasm:
@@ -72,7 +65,9 @@ func (s *DevstackPythonWASMSuite) TestPythonWasmVolumes() {
 	fileContents := "pineapples"
 
 	ctx := context.Background()
-	stack, cm := SetupTest(ctx, s.T(), nodeCount, 0, false, computenode.NewDefaultComputeNodeConfig())
+	stack, cm := SetupTest(ctx, s.T(), nodeCount, 0, false,
+		computenode.NewDefaultComputeNodeConfig(),
+		requesternode.NewDefaultRequesterNodeConfig())
 
 	t := system.GetTracer()
 	ctx, rootSpan := system.NewRootSpan(ctx, t, "pkg/test/devstack.TestPythonWasmVolumes")
@@ -170,7 +165,9 @@ func (s *DevstackPythonWASMSuite) TestSimplestPythonWasmDashC() {
 	s.T().Skip("This test fails when run directly after TestPythonWasmVolumes :-(")
 
 	ctx := context.Background()
-	stack, cm := SetupTest(ctx, s.T(), 1, 0, false, computenode.NewDefaultComputeNodeConfig())
+	stack, cm := SetupTest(ctx, s.T(), 1, 0, false,
+		computenode.NewDefaultComputeNodeConfig(),
+		requesternode.NewDefaultRequesterNodeConfig())
 
 	t := system.GetTracer()
 	ctx, rootSpan := system.NewRootSpan(ctx, t, "pkg/test/devstack/pythonwasmtest/simplestpythonwasmdashc")
@@ -209,7 +206,9 @@ func (s *DevstackPythonWASMSuite) TestSimplePythonWasm() {
 	s.T().Skip("This test fails when run directly after TestPythonWasmVolumes :-(")
 
 	ctx := context.Background()
-	stack, cm := SetupTest(ctx, s.T(), 1, 0, false, computenode.NewDefaultComputeNodeConfig())
+	stack, cm := SetupTest(ctx, s.T(), 1, 0, false,
+		computenode.NewDefaultComputeNodeConfig(),
+		requesternode.NewDefaultRequesterNodeConfig())
 
 	t := system.GetTracer()
 	ctx, rootSpan := system.NewRootSpan(ctx, t, "pkg/test/devstack/pythonwasmtest/simplepythonwasm")

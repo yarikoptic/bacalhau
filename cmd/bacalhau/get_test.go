@@ -1,4 +1,4 @@
-//go:build !(unit && (windows || darwin))
+//go:build !integration
 
 package bacalhau
 
@@ -10,12 +10,15 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/filecoin-project/bacalhau/pkg/requesternode"
+
 	"github.com/filecoin-project/bacalhau/pkg/computenode"
 	"github.com/filecoin-project/bacalhau/pkg/devstack"
 	"github.com/filecoin-project/bacalhau/pkg/ipfs"
 	"github.com/filecoin-project/bacalhau/pkg/logger"
 	"github.com/filecoin-project/bacalhau/pkg/system"
 	devstack_tests "github.com/filecoin-project/bacalhau/pkg/test/devstack"
+	testutils "github.com/filecoin-project/bacalhau/pkg/test/utils"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -35,28 +38,18 @@ type GetSuite struct {
 	rootCmd *cobra.Command
 }
 
-// Before all suite
-func (suite *GetSuite) SetupAllSuite() {
-
-}
-
 // Before each test
 func (suite *GetSuite) SetupTest() {
+	testutils.MustHaveDocker(suite.T())
+
 	logger.ConfigureTestLogging(suite.T())
 	require.NoError(suite.T(), system.InitConfigForTesting())
 	suite.rootCmd = RootCmd
 }
 
-func (suite *GetSuite) TearDownTest() {
-}
-
-func (suite *GetSuite) TearDownAllSuite() {
-
-}
-
 func testResultsFolderStructure(t *testing.T, baseFolder, hostID string) {
 	files := []string{}
-	err := filepath.Walk(baseFolder, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(baseFolder, func(path string, _ os.FileInfo, _ error) error {
 		usePath := strings.Replace(path, baseFolder, "", 1)
 		if usePath != "" {
 			files = append(files, usePath)
@@ -107,15 +100,19 @@ func testResultsFolderStructure(t *testing.T, baseFolder, hostID string) {
 func testDownloadOutput(t *testing.T, cmdOutput, jobID, outputDir string) {
 	require.True(t, strings.Contains(
 		cmdOutput,
-		fmt.Sprintf("Results for job '%s' have been written to...\n%s", jobID, outputDir),
+		fmt.Sprintf("Results for job '%s'", jobID),
+	), "Job ID not found in output")
+	require.True(t, strings.Contains(
+		cmdOutput,
+		fmt.Sprintf("%s", outputDir),
 	), "Download location not found in output")
+
 }
 
 func setupTempWorkingDir(t *testing.T) (string, func()) {
 	// switch wd to a temp dir so we are not writing folders to the current directory
 	// (the point of this test is to see what happens when we DONT pass --output-dir)
-	tempDir, err := os.MkdirTemp("", "docker-run-download-test")
-	require.NoError(t, err)
+	tempDir := t.TempDir()
 	originalWd, err := os.Getwd()
 	require.NoError(t, err)
 	err = os.Chdir(tempDir)
@@ -159,7 +156,10 @@ func getDockerRunArgs(
 // all over the current directory
 func (s *GetSuite) TestDockerRunWriteToJobFolderAutoDownload() {
 	ctx := context.Background()
-	stack, _ := devstack_tests.SetupTest(ctx, s.T(), 1, 0, false, computenode.ComputeNodeConfig{})
+	stack, _ := devstack_tests.SetupTest(ctx, s.T(), 1, 0, false,
+		computenode.NewDefaultComputeNodeConfig(),
+		requesternode.NewDefaultRequesterNodeConfig(),
+	)
 	*ODR = *NewDockerRunOptions()
 
 	tempDir, cleanup := setupTempWorkingDir(s.T())
@@ -183,7 +183,10 @@ func (s *GetSuite) TestDockerRunWriteToJobFolderAutoDownload() {
 // the results layout adheres to the expected folder layout
 func (s *GetSuite) TestDockerRunWriteToJobFolderNamedDownload() {
 	ctx := context.Background()
-	stack, _ := devstack_tests.SetupTest(ctx, s.T(), 1, 0, false, computenode.ComputeNodeConfig{})
+	stack, _ := devstack_tests.SetupTest(ctx, s.T(), 1, 0, false,
+		computenode.NewDefaultComputeNodeConfig(),
+		requesternode.NewDefaultRequesterNodeConfig(),
+	)
 	*ODR = *NewDockerRunOptions()
 
 	tempDir, err := os.MkdirTemp("", "docker-run-download-test")
@@ -207,7 +210,10 @@ func (s *GetSuite) TestDockerRunWriteToJobFolderNamedDownload() {
 // all over the current directory
 func (s *GetSuite) TestGetWriteToJobFolderAutoDownload() {
 	ctx := context.Background()
-	stack, _ := devstack_tests.SetupTest(ctx, s.T(), 1, 0, false, computenode.ComputeNodeConfig{})
+	stack, _ := devstack_tests.SetupTest(ctx, s.T(), 1, 0, false,
+		computenode.NewDefaultComputeNodeConfig(),
+		requesternode.NewDefaultRequesterNodeConfig(),
+	)
 	*ODR = *NewDockerRunOptions()
 	*OG = *NewGetOptions()
 
@@ -240,7 +246,10 @@ func (s *GetSuite) TestGetWriteToJobFolderAutoDownload() {
 // the results layout adheres to the expected folder layout
 func (s *GetSuite) TestGetWriteToJobFolderNamedDownload() {
 	ctx := context.Background()
-	stack, _ := devstack_tests.SetupTest(ctx, s.T(), 1, 0, false, computenode.ComputeNodeConfig{})
+	stack, _ := devstack_tests.SetupTest(ctx, s.T(), 1, 0, false,
+		computenode.NewDefaultComputeNodeConfig(),
+		requesternode.NewDefaultRequesterNodeConfig(),
+	)
 	*ODR = *NewDockerRunOptions()
 	*OG = *NewGetOptions()
 

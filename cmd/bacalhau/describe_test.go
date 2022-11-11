@@ -1,8 +1,9 @@
+//go:build !integration
+
 package bacalhau
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net"
 	"net/url"
@@ -17,7 +18,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"sigs.k8s.io/yaml"
 )
 
 // Define the suite, and absorb the built-in basic suite
@@ -28,23 +28,11 @@ type DescribeSuite struct {
 	rootCmd *cobra.Command
 }
 
-// Before all suite
-func (suite *DescribeSuite) SetupAllSuite() {
-
-}
-
 // Before each test
 func (suite *DescribeSuite) SetupTest() {
 	logger.ConfigureTestLogging(suite.T())
 	require.NoError(suite.T(), system.InitConfigForTesting())
 	suite.rootCmd = RootCmd
-}
-
-func (suite *DescribeSuite) TearDownTest() {
-}
-
-func (suite *DescribeSuite) TearDownAllSuite() {
-
 }
 
 func (suite *DescribeSuite) TestDescribeJob() {
@@ -85,7 +73,7 @@ func (suite *DescribeSuite) TestDescribeJob() {
 
 				parsedBasedURI, _ := url.Parse(c.BaseURI)
 				host, port, _ := net.SplitHostPort(parsedBasedURI.Host)
-				var returnedJob = model.NewJob()
+				returnedJob := &model.Job{}
 
 				// No job id (should error)
 				_, out, err := ExecuteTestCobraCommand(suite.T(), suite.rootCmd, "describe",
@@ -102,7 +90,7 @@ func (suite *DescribeSuite) TestDescribeJob() {
 				)
 				require.NoError(suite.T(), err, "Error in describing job: %+v", err)
 
-				err = yaml.Unmarshal([]byte(out), &returnedJob)
+				err = model.YAMLUnmarshalWithMax([]byte(out), returnedJob)
 				require.NoError(suite.T(), err, "Error in unmarshalling description: %+v", err)
 				require.Equal(suite.T(), submittedJob.ID, returnedJob.ID, "IDs do not match.")
 				require.Equal(suite.T(),
@@ -118,7 +106,7 @@ func (suite *DescribeSuite) TestDescribeJob() {
 				)
 
 				require.NoError(suite.T(), err, "Error in describing job: %+v", err)
-				err = yaml.Unmarshal([]byte(out), returnedJob)
+				err = model.YAMLUnmarshalWithMax([]byte(out), returnedJob)
 				require.NoError(suite.T(), err, "Error in unmarshalling description: %+v", err)
 				require.Equal(suite.T(), submittedJob.ID, returnedJob.ID, "IDs do not match.")
 				require.Equal(suite.T(),
@@ -129,12 +117,12 @@ func (suite *DescribeSuite) TestDescribeJob() {
 				// Short job id
 				_, out, err = ExecuteTestCobraCommand(suite.T(), suite.rootCmd, "describe",
 					"--api-host", host,
-					submittedJob.ID[0:8],
+					submittedJob.ID[0:model.ShortIDLength],
 					"--api-port", port,
 				)
 
 				require.NoError(suite.T(), err, "Error in describing job: %+v", err)
-				err = yaml.Unmarshal([]byte(out), returnedJob)
+				err = model.YAMLUnmarshalWithMax([]byte(out), returnedJob)
 				require.NoError(suite.T(), err, "Error in unmarshalling description: %+v", err)
 				require.Equal(suite.T(), submittedJob.ID, returnedJob.ID, "IDs do not match.")
 				require.Equal(suite.T(),
@@ -183,7 +171,7 @@ func (suite *DescribeSuite) TestDescribeJobIncludeEvents() {
 			_, out, err := ExecuteTestCobraCommand(suite.T(), suite.rootCmd, args...)
 			require.NoError(suite.T(), err, "Error in describing job: %+v", err)
 
-			err = yaml.Unmarshal([]byte(out), &returnedJob)
+			err = model.YAMLUnmarshalWithMax([]byte(out), &returnedJob)
 			require.NoError(suite.T(), err, "Error in unmarshalling description: %+v", err)
 
 			// TODO: #600 When we figure out how to add events to a noop job, uncomment the below
@@ -253,7 +241,7 @@ func (s *DescribeSuite) TestDescribeJobEdgeCases() {
 				if tc.describeIDEdgecase == "" {
 					require.NoError(s.T(), err, "Error in describing job: %+v", err)
 
-					err = yaml.Unmarshal([]byte(out), &returnedJob)
+					err = model.YAMLUnmarshalWithMax([]byte(out), &returnedJob)
 					require.NoError(s.T(), err, "Error in unmarshalling description: %+v", err)
 					require.Equal(s.T(), submittedJob.ID, returnedJob.ID, "IDs do not match.")
 					require.Equal(s.T(),
@@ -262,7 +250,7 @@ func (s *DescribeSuite) TestDescribeJobEdgeCases() {
 						fmt.Sprintf("Submitted job entrypoints not the same as the description. Edgecase: %s", tc.describeIDEdgecase))
 				} else {
 					c := &model.TestFatalErrorHandlerContents{}
-					json.Unmarshal([]byte(out), &c)
+					model.JSONUnmarshalWithMax([]byte(out), &c)
 					e := bacerrors.NewJobNotFound(tc.describeIDEdgecase)
 					require.Contains(s.T(), c.Message, e.GetMessage(), "Job not found error string not found.", err)
 				}

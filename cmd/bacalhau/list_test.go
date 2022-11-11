@@ -1,8 +1,9 @@
+//go:build !integration
+
 package bacalhau
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net"
 	"net/url"
@@ -35,22 +36,10 @@ func TestListSuite(t *testing.T) {
 	suite.Run(t, new(ListSuite))
 }
 
-// Before all suite
-func (suite *ListSuite) SetupAllSuite() {
-
-}
-
 // Before each test
 func (suite *ListSuite) SetupTest() {
 	suite.rootCmd = RootCmd
 	logger.ConfigureTestLogging(suite.T())
-}
-
-func (suite *ListSuite) TearDownTest() {
-}
-
-func (suite *ListSuite) TearDownAllSuite() {
-
 }
 
 type listResponse struct {
@@ -155,7 +144,7 @@ func (suite *ListSuite) TestList_IdFilter() {
 
 	// parse response
 	response := listResponse{}
-	err = json.Unmarshal([]byte(out), &response.Jobs)
+	err = model.JSONUnmarshalWithMax([]byte(out), &response.Jobs)
 
 	var firstItem *model.Job
 	for _, v := range response.Jobs {

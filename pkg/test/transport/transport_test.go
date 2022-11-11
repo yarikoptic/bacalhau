@@ -1,3 +1,5 @@
+//go:build !integration
+
 package transport_test
 
 import (
@@ -32,23 +34,11 @@ func TestTransportSuite(t *testing.T) {
 	suite.Run(t, new(TransportSuite))
 }
 
-// Before all suite
-func (suite *TransportSuite) SetupAllSuite() {
-
-}
-
 // Before each test
 func (suite *TransportSuite) SetupTest() {
 	logger.ConfigureTestLogging(suite.T())
 	err := system.InitConfigForTesting()
 	require.NoError(suite.T(), err)
-}
-
-func (suite *TransportSuite) TearDownTest() {
-}
-
-func (suite *TransportSuite) TearDownAllSuite() {
-
 }
 
 func setupTest(t *testing.T) *node.Node {
@@ -66,7 +56,7 @@ func setupTest(t *testing.T) *node.Node {
 		LocalDB:             datastore,
 		Transport:           transport,
 		ComputeNodeConfig:   computenode.NewDefaultComputeNodeConfig(),
-		RequesterNodeConfig: requesternode.RequesterNodeConfig{},
+		RequesterNodeConfig: requesternode.NewDefaultRequesterNodeConfig(),
 	}
 
 	node, err := devstack.NewNoopNode(ctx, nodeConfig)
@@ -89,11 +79,6 @@ func (suite *TransportSuite) TestTransportEvents() {
 		Engine:    model.EngineNoop,
 		Verifier:  model.VerifierNoop,
 		Publisher: model.PublisherNoop,
-		Docker: model.JobSpecDocker{
-			Image:                "image",
-			Entrypoint:           []string{"entrypoint"},
-			EnvironmentVariables: []string{"env"},
-		},
 		Inputs: []model.StorageSpec{
 			{
 				StorageSource: model.StorageSourceIPFS,

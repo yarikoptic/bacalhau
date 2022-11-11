@@ -1,4 +1,4 @@
-//go:build !(unit && (windows || darwin))
+//go:build integration
 
 package devstack
 
@@ -12,6 +12,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/filecoin-project/bacalhau/pkg/requesternode"
+
 	"github.com/filecoin-project/bacalhau/pkg/computenode"
 	"github.com/filecoin-project/bacalhau/pkg/devstack"
 	"github.com/filecoin-project/bacalhau/pkg/ipfs"
@@ -21,6 +23,7 @@ import (
 	"github.com/filecoin-project/bacalhau/pkg/publicapi"
 	apicopy "github.com/filecoin-project/bacalhau/pkg/storage/ipfs_apicopy"
 	"github.com/filecoin-project/bacalhau/pkg/system"
+	testutils "github.com/filecoin-project/bacalhau/pkg/test/utils"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -36,23 +39,13 @@ func TestShardingSuite(t *testing.T) {
 	suite.Run(t, new(ShardingSuite))
 }
 
-// Before all suite
-func (suite *ShardingSuite) SetupSuite() {
-
-}
-
 // Before each test
 func (suite *ShardingSuite) SetupTest() {
+	testutils.MustHaveDocker(suite.T())
+
 	logger.ConfigureTestLogging(suite.T())
 	err := system.InitConfigForTesting()
 	require.NoError(suite.T(), err)
-}
-
-func (suite *ShardingSuite) TearDownTest() {
-}
-
-func (suite *ShardingSuite) TearDownSuite() {
-
 }
 
 func prepareFolderWithFoldersAndFiles(t *testing.T, folderCount, fileCount int) (string, error) {
@@ -159,6 +152,7 @@ func (suite *ShardingSuite) TestEndToEnd() {
 		0,
 		false,
 		computenode.NewDefaultComputeNodeConfig(),
+		requesternode.NewDefaultRequesterNodeConfig(),
 	)
 
 	t := system.GetTracer()
@@ -308,6 +302,7 @@ func (suite *ShardingSuite) TestNoShards() {
 		0,
 		false,
 		computenode.NewDefaultComputeNodeConfig(),
+		requesternode.NewDefaultRequesterNodeConfig(),
 	)
 
 	t := system.GetTracer()
@@ -371,6 +366,7 @@ func (suite *ShardingSuite) TestExplodeVideos() {
 		0,
 		false,
 		computenode.NewDefaultComputeNodeConfig(),
+		requesternode.NewDefaultRequesterNodeConfig(),
 	)
 
 	t := system.GetTracer()
