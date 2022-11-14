@@ -18,7 +18,7 @@ type localEventsResponse struct {
 }
 
 //nolint:dupl
-func (apiServer *APIServer) localEvents(res http.ResponseWriter, req *http.Request) {
+func (a *APIServer) localEvents(res http.ResponseWriter, req *http.Request) {
 	var eventsReq localEventsRequest
 	if err := json.NewDecoder(req.Body).Decode(&eventsReq); err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
@@ -27,7 +27,7 @@ func (apiServer *APIServer) localEvents(res http.ResponseWriter, req *http.Reque
 	res.Header().Set(handlerwrapper.HTTPHeaderClientID, eventsReq.ClientID)
 	res.Header().Set(handlerwrapper.HTTPHeaderJobID, eventsReq.JobID)
 
-	events, err := apiServer.localdb.GetJobLocalEvents(req.Context(), eventsReq.JobID)
+	events, err := a.localdb.GetJobLocalEvents(req.Context(), eventsReq.JobID)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return

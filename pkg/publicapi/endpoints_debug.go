@@ -19,14 +19,14 @@ type debugResponse struct {
 }
 
 // Returns debug information on what the current node is doing.
-func (apiServer *APIServer) debug(res http.ResponseWriter, req *http.Request) {
+func (a *APIServer) debug(res http.ResponseWriter, req *http.Request) {
 	ctx, span := system.GetSpanFromRequest(req, "apiServer/debug")
 	defer span.End()
 
 	responseObj := debugResponse{
-		AvailableComputeCapacity: apiServer.ComputeNode.GetAvailableCapacity(ctx),
-		RequesterJobs:            apiServer.Requester.GetActiveJobs(ctx),
-		ComputeJobs:              apiServer.ComputeNode.GetActiveJobs(ctx),
+		AvailableComputeCapacity: a.ComputeNode.GetAvailableCapacity(ctx),
+		RequesterJobs:            a.Requester.GetActiveJobs(ctx),
+		ComputeJobs:              a.ComputeNode.GetActiveJobs(ctx),
 	}
 
 	res.WriteHeader(http.StatusOK)

@@ -18,7 +18,7 @@ type eventsResponse struct {
 }
 
 //nolint:dupl
-func (apiServer *APIServer) events(res http.ResponseWriter, req *http.Request) {
+func (a *APIServer) events(res http.ResponseWriter, req *http.Request) {
 	var eventsReq eventsRequest
 	if err := json.NewDecoder(req.Body).Decode(&eventsReq); err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
@@ -28,7 +28,7 @@ func (apiServer *APIServer) events(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set(handlerwrapper.HTTPHeaderJobID, eventsReq.JobID)
 
 	ctx := req.Context()
-	events, err := apiServer.localdb.GetJobEvents(ctx, eventsReq.JobID)
+	events, err := a.localdb.GetJobEvents(ctx, eventsReq.JobID)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return

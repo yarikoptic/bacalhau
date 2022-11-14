@@ -19,7 +19,7 @@ type resultsResponse struct {
 	Results []model.PublishedResult `json:"results"`
 }
 
-func (apiServer *APIServer) results(res http.ResponseWriter, req *http.Request) {
+func (a *APIServer) results(res http.ResponseWriter, req *http.Request) {
 	ctx, span := system.GetSpanFromRequest(req, "pkg/publicapi.results")
 	defer span.End()
 
@@ -34,7 +34,7 @@ func (apiServer *APIServer) results(res http.ResponseWriter, req *http.Request) 
 	ctx = system.AddJobIDToBaggage(ctx, stateReq.JobID)
 	system.AddJobIDFromBaggageToSpan(ctx, span)
 
-	stateResolver := localdb.GetStateResolver(apiServer.localdb)
+	stateResolver := localdb.GetStateResolver(a.localdb)
 	results, err := stateResolver.GetResults(ctx, stateReq.JobID)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)

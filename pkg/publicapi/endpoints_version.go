@@ -17,7 +17,7 @@ type versionResponse struct {
 	VersionInfo *model.BuildVersionInfo `json:"build_version_info"`
 }
 
-func (apiServer *APIServer) version(res http.ResponseWriter, req *http.Request) {
+func (a *APIServer) version(res http.ResponseWriter, req *http.Request) {
 	ctx, span := system.GetSpanFromRequest(req, "apiServer/version")
 	defer span.End()
 

@@ -33,7 +33,7 @@ type submitResponse struct {
 	Job *model.Job `json:"job"`
 }
 
-func (apiServer *APIServer) submit(res http.ResponseWriter, req *http.Request) {
+func (a *APIServer) submit(res http.ResponseWriter, req *http.Request) {
 	ctx, span := system.GetSpanFromRequest(req, "pkg/apiServer.submit")
 	defer span.End()
 
@@ -90,7 +90,7 @@ func (apiServer *APIServer) submit(res http.ResponseWriter, req *http.Request) {
 		// write the "context" for a job to storage
 		// this is used to upload code files
 		// we presently just fix on ipfs to do this
-		ipfsStorage, err := apiServer.StorageProviders.GetStorage(ctx, model.StorageSourceIPFS)
+		ipfsStorage, err := a.StorageProviders.GetStorage(ctx, model.StorageSourceIPFS)
 		if err != nil {
 			log.Ctx(ctx).Debug().Msgf("====> GetStorage error: %s", err)
 			http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -113,7 +113,7 @@ func (apiServer *APIServer) submit(res http.ResponseWriter, req *http.Request) {
 		})
 	}
 
-	j, err := apiServer.Requester.SubmitJob(
+	j, err := a.Requester.SubmitJob(
 		ctx,
 		submitReq.Data,
 	)

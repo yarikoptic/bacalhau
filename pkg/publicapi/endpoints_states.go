@@ -19,7 +19,7 @@ type stateResponse struct {
 	State model.JobState `json:"state"`
 }
 
-func (apiServer *APIServer) states(res http.ResponseWriter, req *http.Request) {
+func (a *APIServer) states(res http.ResponseWriter, req *http.Request) {
 	ctx, span := system.GetSpanFromRequest(req, "pkg/publicapi/states")
 	defer span.End()
 
@@ -32,7 +32,7 @@ func (apiServer *APIServer) states(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set(handlerwrapper.HTTPHeaderJobID, stateReq.JobID)
 	ctx = system.AddJobIDToBaggage(ctx, stateReq.JobID)
 
-	js, err := getJobStateFromRequest(ctx, apiServer, stateReq)
+	js, err := getJobStateFromRequest(ctx, a, stateReq)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -48,9 +48,9 @@ func (apiServer *APIServer) states(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func getJobStateFromRequest(ctx context.Context, apiServer *APIServer, stateReq stateRequest) (model.JobState, error) {
+func getJobStateFromRequest(ctx context.Context, a *APIServer, stateReq stateRequest) (model.JobState, error) {
 	ctx, span := system.GetTracer().Start(ctx, "pkg/publicapi/getJobStateFromRequest")
 	defer span.End()
 
-	return apiServer.localdb.GetJobState(ctx, stateReq.JobID)
+	return a.localdb.GetJobState(ctx, stateReq.JobID)
 }

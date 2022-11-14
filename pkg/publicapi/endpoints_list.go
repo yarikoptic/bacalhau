@@ -26,7 +26,7 @@ type listResponse struct {
 	Jobs []*model.Job `json:"jobs"`
 }
 
-func (apiServer *APIServer) list(res http.ResponseWriter, req *http.Request) {
+func (a *APIServer) list(res http.ResponseWriter, req *http.Request) {
 	ctx, span := system.GetSpanFromRequest(req, "pkg/publicapi.list")
 	defer span.End()
 
@@ -38,7 +38,7 @@ func (apiServer *APIServer) list(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set(handlerwrapper.HTTPHeaderClientID, listReq.ClientID)
 	res.Header().Set(handlerwrapper.HTTPHeaderJobID, listReq.JobID)
 
-	jobList, err := apiServer.getJobsList(ctx, listReq)
+	jobList, err := a.getJobsList(ctx, listReq)
 	if err != nil {
 		_, ok := err.(*bacerrors.JobNotFound)
 		if ok {
@@ -48,7 +48,7 @@ func (apiServer *APIServer) list(res http.ResponseWriter, req *http.Request) {
 	}
 	if len(jobList) > 0 {
 		// get JobStates
-		err = apiServer.getJobStates(ctx, jobList)
+		err = a.getJobStates(ctx, jobList)
 		if err != nil {
 			log.Ctx(ctx).Error().Err(err).Msg("error getting job states")
 			http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -65,11 +65,11 @@ func (apiServer *APIServer) list(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (apiServer *APIServer) getJobsList(ctx context.Context, listReq listRequest) ([]*model.Job, error) {
+func (a *APIServer) getJobsList(ctx context.Context, listReq listRequest) ([]*model.Job, error) {
 	ctx, span := system.GetTracer().Start(ctx, "pkg/publicapi.list")
 	defer span.End()
 
-	list, err := apiServer.localdb.GetJobs(ctx, localdb.JobQuery{
+	list, err := a.localdb.GetJobs(ctx, localdb.JobQuery{
 		ClientID:    listReq.ClientID,
 		ID:          listReq.JobID,
 		Limit:       listReq.MaxJobs,
@@ -83,13 +83,13 @@ func (apiServer *APIServer) getJobsList(ctx context.Context, listReq listRequest
 	return list, nil
 }
 
-func (apiServer *APIServer) getJobStates(ctx context.Context, jobList []*model.Job) error {
+func (a *APIServer) getJobStates(ctx context.Context, jobList []*model.Job) error {
 	ctx, span := system.GetTracer().Start(ctx, "pkg/publicapi.getJobStates")
 	defer span.End()
 
 	var err error
 	for k := range jobList {
-		jobList[k].State, err = apiServer.localdb.GetJobState(ctx, jobList[k].ID)
+		jobList[k].State, err = a.localdb.GetJobState(ctx, jobList[k].ID)
 		if err != nil {
 			log.Ctx(ctx).Error().Msgf("error getting job state: %s", err)
 			return err

@@ -9,14 +9,14 @@ import (
 	"github.com/filecoin-project/bacalhau/pkg/transport/libp2p"
 )
 
-func (apiServer *APIServer) peers(res http.ResponseWriter, req *http.Request) {
+func (a *APIServer) peers(res http.ResponseWriter, req *http.Request) {
 	ctx, span := system.GetSpanFromRequest(req, "apiServer/peers")
 	defer span.End()
 
 	// switch on apiTransport type to get the right method
 	// we need to use a switch here because we want to look at .(type)
 	// ^ that is a note for you gocritic
-	switch apiTransport := apiServer.transport.(type) { //nolint:gocritic
+	switch apiTransport := a.transport.(type) { //nolint:gocritic
 	case *libp2p.LibP2PTransport:
 		peers, err := apiTransport.GetPeers(ctx)
 		if err != nil {

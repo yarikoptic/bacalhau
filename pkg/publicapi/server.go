@@ -11,6 +11,7 @@ import (
 	"github.com/c2h5oh/datasize"
 	"github.com/filecoin-project/bacalhau/pkg/logger"
 	"github.com/filecoin-project/bacalhau/pkg/model"
+	"github.com/filecoin-project/bacalhau/pkg/websockets"
 
 	"github.com/filecoin-project/bacalhau/pkg/publicapi/handlerwrapper"
 
@@ -29,6 +30,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+
+	"github.com/gorilla/mux"
 )
 
 // MaxBytesToReadInBody is used by safeHandlerFuncWrapper as the max size of body
@@ -68,6 +71,8 @@ type APIServer struct {
 	Port             int
 	Config           *APIServerConfig
 }
+
+var h *websockets.Hub
 
 func init() { //nolint:gochecknoinits
 	sync.SetGlobalOpts(sync.Opts{
@@ -128,43 +133,45 @@ func NewServerWithConfig(
 }
 
 // GetURI returns the HTTP URI that the server is listening on.
-func (apiServer *APIServer) GetURI() string {
-	return fmt.Sprintf("http://%s:%d", apiServer.Host, apiServer.Port)
+func (a *APIServer) GetURI() string {
+	return fmt.Sprintf("http://%s:%d", a.Host, a.Port)
 }
 
 // ListenAndServe listens for and serves HTTP requests against the API server.
-func (apiServer *APIServer) ListenAndServe(ctx context.Context, cm *system.CleanupManager) error {
-	hostID := apiServer.Requester.ID
+func (a *APIServer) ListenAndServe(ctx context.Context, cm *system.CleanupManager) error {
+	hostID := a.Requester.ID
+
+	h = websockets.NewHub()
+	go h.Run()
 
 	// TODO: #677 Significant issue, when client returns error to any of these commands, it still submits to server
-	sm := http.NewServeMux()
-	sm.Handle(apiServer.chainHandlers("/list", apiServer.list))
-	sm.Handle(apiServer.chainHandlers("/states", apiServer.states))
-	sm.Handle(apiServer.chainHandlers("/results", apiServer.results))
-	sm.Handle(apiServer.chainHandlers("/events", apiServer.events))
-	sm.Handle(apiServer.chainHandlers("/local_events", apiServer.localEvents))
-	sm.Handle(apiServer.chainHandlers("/id", apiServer.id))
-	sm.Handle(apiServer.chainHandlers("/peers", apiServer.peers))
-	sm.Handle(apiServer.chainHandlers("/submit", apiServer.submit))
-	sm.Handle(apiServer.chainHandlers("/version", apiServer.version))
-	sm.Handle(apiServer.chainHandlers("/healthz", apiServer.healthz))
-	sm.Handle(apiServer.chainHandlers("/logz", apiServer.logz))
-	sm.Handle(apiServer.chainHandlers("/varz", apiServer.varz))
-	sm.Handle(apiServer.chainHandlers("/livez", apiServer.livez))
-	sm.Handle(apiServer.chainHandlers("/readyz", apiServer.readyz))
-	sm.Handle(apiServer.chainHandlers("/debug", apiServer.debug))
-	sm.Handle(apiServer.chainHandlers("/ws", apiServer.debug))
-
-	sm.Handle("/metrics", promhttp.Handler())
+	r := mux.NewRouter()
+	r.Handle(a.chainHandlers("/list", a.list))
+	r.Handle(a.chainHandlers("/states", a.states))
+	r.Handle(a.chainHandlers("/results", a.results))
+	r.Handle(a.chainHandlers("/events", a.events))
+	r.Handle(a.chainHandlers("/local_events", a.localEvents))
+	r.Handle(a.chainHandlers("/id", a.id))
+	r.Handle(a.chainHandlers("/peers", a.peers))
+	r.Handle(a.chainHandlers("/submit", a.submit))
+	r.Handle(a.chainHandlers("/version", a.version))
+	r.Handle(a.chainHandlers("/healthz", a.healthz))
+	r.Handle(a.chainHandlers("/logz", a.logz))
+	r.Handle(a.chainHandlers("/varz", a.varz))
+	r.Handle(a.chainHandlers("/livez", a.livez))
+	r.Handle(a.chainHandlers("/readyz", a.readyz))
+	r.Handle(a.chainHandlers("/debug", a.debug))
+	r.Handle(a.chainHandlers("/ws", a.websocket))
+	r.Handle("/metrics", promhttp.Handler())
 
 	srv := http.Server{
-		Handler:           sm,
-		Addr:              fmt.Sprintf("%s:%d", apiServer.Host, apiServer.Port),
-		ReadHeaderTimeout: apiServer.Config.ReadHeaderTimeout,
-		ReadTimeout:       apiServer.Config.ReadTimeout,
-		WriteTimeout:      apiServer.Config.WriteTimeout,
+		Handler:           r,
+		Addr:              fmt.Sprintf("%s:%d", a.Host, a.Port),
+		ReadHeaderTimeout: a.Config.ReadHeaderTimeout,
+		ReadTimeout:       a.Config.ReadTimeout,
+		WriteTimeout:      a.Config.WriteTimeout,
 		BaseContext: func(_ net.Listener) context.Context {
-			return logger.ContextWithNodeIDLogger(context.Background(), apiServer.Requester.ID)
+			return logger.ContextWithNodeIDLogger(context.Background(), a.Requester.ID)
 		},
 	}
 
@@ -177,6 +184,9 @@ func (apiServer *APIServer) ListenAndServe(ctx context.Context, cm *system.Clean
 		// canceled and so would prevent us from performing any cleanup work.
 		return srv.Shutdown(context.Background())
 	})
+
+	// subscribe the job event handler to transport events
+	a.transport.Subscribe(ctx, h.JobEventBroadcaster)
 
 	err := srv.ListenAndServe()
 	if err == http.ErrServerClosed {
@@ -222,7 +232,7 @@ func verifySubmitRequest(req *submitRequest) error {
 	return nil
 }
 
-func (apiServer *APIServer) chainHandlers(uri string, handlerFunc http.HandlerFunc) (string, http.Handler) {
+func (a *APIServer) chainHandlers(uri string, handlerFunc http.HandlerFunc) (string, http.Handler) {
 	// otel handler
 	handler := otelhttp.NewHandler(handlerFunc, fmt.Sprintf("pkg/publicapi%s", uri))
 
@@ -234,10 +244,10 @@ func (apiServer *APIServer) chainHandlers(uri string, handlerFunc http.HandlerFu
 		handler)
 
 	// timeout handler. Find timeout for this endpoint, or use the fallback value
-	handlerTimeout, ok := apiServer.Config.RequestHandlerTimeoutByURI[uri]
+	handlerTimeout, ok := a.Config.RequestHandlerTimeoutByURI[uri]
 	if !ok {
-		if apiServer.Config.RequestHandlerTimeout != 0 {
-			handlerTimeout = apiServer.Config.RequestHandlerTimeout
+		if a.Config.RequestHandlerTimeout != 0 {
+			handlerTimeout = a.Config.RequestHandlerTimeout
 		} else {
 			// if no fallback timeout is defined, then use the default value
 			handlerTimeout = DefaultAPIServerConfig.RequestHandlerTimeout
@@ -248,6 +258,6 @@ func (apiServer *APIServer) chainHandlers(uri string, handlerFunc http.HandlerFu
 	handler = http.MaxBytesHandler(handler, int64(MaxBytesToReadInBody))
 
 	// logging handler. Should be last in the chain.
-	handler = handlerwrapper.NewHTTPHandlerWrapper(apiServer.Requester.ID, handler, handlerwrapper.NewJSONLogHandler())
+	handler = handlerwrapper.NewHTTPHandlerWrapper(a.Requester.ID, handler, handlerwrapper.NewJSONLogHandler())
 	return uri, handler
 }

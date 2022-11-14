@@ -9,11 +9,11 @@ import (
 	"github.com/filecoin-project/bacalhau/pkg/system"
 )
 
-func (apiServer *APIServer) id(res http.ResponseWriter, req *http.Request) {
+func (a *APIServer) id(res http.ResponseWriter, req *http.Request) {
 	_, span := system.GetSpanFromRequest(req, "apiServer/id")
 	defer span.End()
 
-	switch apiTransport := apiServer.transport.(type) { //nolint:gocritic
+	switch apiTransport := a.transport.(type) { //nolint:gocritic
 	case *libp2p.LibP2PTransport:
 		id := apiTransport.HostID()
 		res.WriteHeader(http.StatusOK)

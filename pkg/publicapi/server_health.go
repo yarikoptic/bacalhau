@@ -23,7 +23,7 @@ func GenerateHealthData() types.HealthInfo {
 	return healthInfo
 }
 
-func (apiServer *APIServer) livez(res http.ResponseWriter, req *http.Request) {
+func (a *APIServer) livez(res http.ResponseWriter, req *http.Request) {
 	// Extremely simple liveness check (should be fine to be public / no-auth)
 	log.Debug().Msg("Received OK request")
 	res.Header().Add("Content-Type", "text/plain")
@@ -34,7 +34,7 @@ func (apiServer *APIServer) livez(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (apiServer *APIServer) logz(res http.ResponseWriter, req *http.Request) {
+func (a *APIServer) logz(res http.ResponseWriter, req *http.Request) {
 	log.Debug().Msg("Received logz request")
 	res.Header().Add("Content-Type", "text/plain")
 	res.WriteHeader(http.StatusOK)
@@ -54,7 +54,7 @@ func (apiServer *APIServer) logz(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (apiServer *APIServer) readyz(res http.ResponseWriter, req *http.Request) {
+func (a *APIServer) readyz(res http.ResponseWriter, req *http.Request) {
 	log.Debug().Msg("Received readyz request.")
 	// TODO: Add checker for queue that this node can accept submissions
 	isReady := true
@@ -70,7 +70,7 @@ func (apiServer *APIServer) readyz(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (apiServer *APIServer) healthz(res http.ResponseWriter, req *http.Request) {
+func (a *APIServer) healthz(res http.ResponseWriter, req *http.Request) {
 	// TODO: A list of health information. Should require authing (of some kind)
 	log.Debug().Msg("Received healthz request.")
 	res.Header().Add("Content-Type", "application/json")
@@ -88,7 +88,7 @@ func (apiServer *APIServer) healthz(res http.ResponseWriter, req *http.Request) 
 	}
 }
 
-func (apiServer *APIServer) varz(res http.ResponseWriter, req *http.Request) {
+func (a *APIServer) varz(res http.ResponseWriter, req *http.Request) {
 	// TODO: Fill in with the configuration settings for this node
 	res.WriteHeader(http.StatusOK)
 	res.Header().Add("Content-Type", "application/json")

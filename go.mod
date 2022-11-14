@@ -17,9 +17,10 @@ require (
 	github.com/filecoin-project/go-jsonrpc v0.1.9
 	github.com/filecoin-project/go-state-types v0.9.9
 	github.com/go-resty/resty/v2 v2.7.0
-	github.com/gobwas/ws v1.1.0
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.3.0
+	github.com/gorilla/mux v1.8.0
+	github.com/gorilla/websocket v1.5.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/imdario/mergo v0.3.13
 	github.com/invopop/jsonschema v0.7.0
@@ -77,6 +78,7 @@ require (
 	golang.org/x/mod v0.7.0
 	golang.org/x/net v0.2.0
 	golang.org/x/sync v0.1.0
+	golang.org/x/tools v0.3.0
 	google.golang.org/grpc v1.50.1
 	k8s.io/kubectl v0.25.3
 	sigs.k8s.io/yaml v1.3.0
@@ -129,8 +131,6 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-pkgz/expirable-cache v0.1.0 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
-	github.com/gobwas/httphead v0.1.0 // indirect
-	github.com/gobwas/pool v0.2.1 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
@@ -138,7 +138,6 @@ require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/gofuzz v1.1.0 // indirect
 	github.com/google/gopacket v1.1.19 // indirect
-	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.0 // indirect
 	github.com/hannahhoward/go-pubsub v0.0.0-20200423002714-8d62886cc36e // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
@@ -314,7 +313,6 @@ require (
 	golang.org/x/term v0.2.0 // indirect
 	golang.org/x/text v0.4.0 // indirect
 	golang.org/x/time v0.0.0-20220609170525-579cf78fd858 // indirect
-	golang.org/x/tools v0.2.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20221024183307-1bc688fe9f3e // indirect
