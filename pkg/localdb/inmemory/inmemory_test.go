@@ -71,7 +71,7 @@ func TestInMemoryDataStore(t *testing.T) {
 	nodeState, ok := jobState.Nodes[nodeId]
 	require.True(t, ok)
 
-	shardState, ok := nodeState.Shards[shardIndex]
+	shardState, ok := nodeState.GetShard(shardIndex)
 	require.True(t, ok)
 
 	require.Equal(t, model.JobStateBidding, shardState.State)

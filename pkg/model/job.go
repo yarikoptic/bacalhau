@@ -1,7 +1,10 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/imdario/mergo"
@@ -110,7 +113,7 @@ type JobExecutionPlan struct {
 	TotalShards int `json:"ShardsTotal,omitempty"`
 }
 
-// describe how we chunk a job up into shards
+// JobShardingConfig describes how we chunk a job up into shards
 type JobShardingConfig struct {
 	// divide the inputs up into the smallest possible unit
 	// for example /* would mean "all top level files or folders"
@@ -146,7 +149,78 @@ type JobState struct {
 }
 
 type JobNodeState struct {
+	// shards is accessed concurrently so must be carefully accessed
+	shards *sync.Map
+}
+
+// jsonJobNodeState is used to represent JobNodeState in JSON, without a sync.Map
+type jsonJobNodeState struct {
 	Shards map[int]JobShardState `json:"Shards,omitempty"`
+}
+
+func (s JobNodeState) MarshalJSON() ([]byte, error) {
+	m := jsonJobNodeState{map[int]JobShardState{}}
+	s.RangeShards(func(key int, value JobShardState) {
+		m.Shards[key] = value
+	})
+	marshal, err := json.Marshal(m)
+	return marshal, err
+}
+
+func (s *JobNodeState) UnmarshalJSON(data []byte) error {
+	var m jsonJobNodeState
+	if err := json.Unmarshal(data, &m); err != nil {
+		return err
+	}
+	s.shards = &sync.Map{}
+	for k, v := range m.Shards {
+		s.PutShard(k, v)
+	}
+	return nil
+}
+
+func (s JobNodeState) String() string {
+	var b strings.Builder
+	b.WriteString("JobNodeState{Shards=[")
+	s.RangeShards(func(key int, value JobShardState) {
+		b.WriteString(fmt.Sprintf("%d=%v", key, value))
+	})
+	b.WriteString("]}")
+	return b.String()
+}
+
+func (s JobNodeState) ShardCount() int {
+	count := 0
+	s.shards.Range(func(key, value any) bool {
+		count++
+		return true
+	})
+	return count
+}
+
+func (s *JobNodeState) RangeShards(f func(key int, value JobShardState)) {
+	s.shards.Range(func(key, value any) bool {
+		f(key.(int), value.(JobShardState))
+		return true
+	})
+}
+
+func (s JobNodeState) GetShard(key int) (JobShardState, bool) {
+	v, ok := s.shards.Load(key)
+	if !ok {
+		return JobShardState{}, false
+	}
+	return v.(JobShardState), true
+}
+
+func (s JobNodeState) PutShard(key int, value JobShardState) {
+	s.shards.Store(key, value)
+}
+
+func NewJobNodeState() JobNodeState {
+	return JobNodeState{
+		shards: &sync.Map{},
+	}
 }
 
 type JobShardState struct {
@@ -168,7 +242,7 @@ type JobShardState struct {
 	RunOutput *RunCommandResult `json:"RunOutput,omitempty"`
 }
 
-// The deal the client has made with the bacalhau network.
+// Deal is the deal the client has made with the bacalhau network.
 // This is updateable by the client who submitted the job
 type Deal struct {
 	// The maximum number of concurrent compute node bids that will be
@@ -240,7 +314,7 @@ func (s *Spec) GetTimeout() time.Duration {
 	return time.Duration(s.Timeout * float64(time.Second))
 }
 
-// for VM style executors
+// JobSpecDocker is for VM style executors
 type JobSpecDocker struct {
 	// this should be pullable by docker
 	Image string `json:"Image,omitempty"`
@@ -252,7 +326,7 @@ type JobSpecDocker struct {
 	WorkingDirectory string `json:"WorkingDirectory,omitempty"`
 }
 
-// for language style executors (can target docker or wasm)
+// JobSpecLanguage is for language style executors (can target docker or wasm)
 type JobSpecLanguage struct {
 	Language        string `json:"Language,omitempty"`        // e.g. python
 	LanguageVersion string `json:"LanguageVersion,omitempty"` // e.g. 3.8
@@ -268,7 +342,7 @@ type JobSpecLanguage struct {
 	RequirementsPath string `json:"RequirementsPath,omitempty"`
 }
 
-// Describes a raw WASM job
+// JobSpecWasm describes a raw WASM job
 type JobSpecWasm struct {
 	// TODO #915: The module that contains the WASM code to start running.
 	// EntryModule StorageSpec `json:"EntryModule,omitempty"`
@@ -290,7 +364,7 @@ type JobSpecWasm struct {
 	ImportModules []StorageSpec `json:"ImportModules,omitempty"`
 }
 
-// gives us a way to keep local data against a job
+// JobLocalEvent gives us a way to keep local data against a job
 // so our compute node and requester node control loops
 // can keep state against a job without broadcasting it
 // to the rest of the network
@@ -301,7 +375,7 @@ type JobLocalEvent struct {
 	TargetNodeID string            `json:"TargetNodeID,omitempty"`
 }
 
-// we emit these to other nodes so they update their
+// JobEvent - we emit these to other nodes so they update their
 // state locally and can emit events locally
 type JobEvent struct {
 	// APIVersion of the Job
@@ -336,7 +410,7 @@ type JobEvent struct {
 	RunOutput *RunCommandResult `json:"RunOutput,omitempty"`
 }
 
-// we need to use a struct for the result because:
+// VerificationResult - we need to use a struct for the result because:
 // a) otherwise we don't know if VerificationResult==false
 // means "I've not verified yet" or "verification failed"
 // b) we might want to add further fields to the result later
@@ -357,3 +431,7 @@ type JobCreatePayload struct {
 	// flood the transport layer with it (potentially very large).
 	Context string `json:"Context,omitempty"`
 }
+
+var _ json.Marshaler = &JobNodeState{}
+var _ json.Unmarshaler = &JobNodeState{}
+var _ fmt.Stringer = &JobNodeState{}

@@ -192,44 +192,6 @@ func ExecuteTestCobraCommandWithStdin(_ *testing.T, root *cobra.Command, stdin i
 	return c, buf.String(), err
 }
 
-// this function captures the output of all functions running in it between capture() and done()
-// example:
-// 	done := capture()
-//	fmt.Println("hello")
-//	s, _ := done()
-// after trimming str := strings.TrimSpace(s) it will return "hello"
-// so if we want to compare the output in the console with a expected output like "hello" we could do that
-// this is mainly used in testing --local
-// go playground link https://go.dev/play/p/cuGIaIorWfD
-
-//nolint:unused
-func capture() func() (string, error) {
-	r, w, err := os.Pipe()
-	if err != nil {
-		panic(err)
-	}
-
-	done := make(chan error, 1)
-
-	save := os.Stdout
-	os.Stdout = w
-
-	var buf strings.Builder
-
-	go func() {
-		_, err := io.Copy(&buf, r)
-		r.Close()
-		done <- err
-	}()
-
-	return func() (string, error) {
-		os.Stdout = save
-		w.Close()
-		err := <-done
-		return buf.String(), err
-	}
-}
-
 func NewIPFSDownloadFlags(settings *ipfs.IPFSDownloadSettings) *pflag.FlagSet {
 	flags := pflag.NewFlagSet("IPFS Download flags", pflag.ContinueOnError)
 	flags.IntVar(&settings.TimeoutSecs, "download-timeout-secs",
@@ -406,7 +368,7 @@ func ExecuteJob(ctx context.Context,
 		for i := range nodeIndexes {
 			n := js.Nodes[nodeIndexes[i]]
 			printOut += fmt.Sprintf("Node %s:\n", nodeIndexes[i][:8])
-			for j, s := range n.Shards { //nolint:gocritic // very small loop, ok to be costly
+			n.RangeShards(func(j int, s model.JobShardState) {
 				printOut += fmt.Sprintf(indentOne+"Shard %d:\n", j)
 				printOut += fmt.Sprintf(indentTwo+"State: %s\n", s.State)
 				printOut += fmt.Sprintf(indentTwo+"Status: %s\n", s.State)
@@ -429,7 +391,7 @@ func ExecuteJob(ctx context.Context,
 					printResults("Stdout", s.RunOutput.STDOUT, s.RunOutput.StdoutTruncated)
 					printResults("Stderr", s.RunOutput.STDERR, s.RunOutput.StderrTruncated)
 				}
-			}
+			})
 		}
 	}
 

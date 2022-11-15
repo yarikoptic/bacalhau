@@ -288,11 +288,9 @@ func (d *InMemoryDatastore) UpdateShardState(
 
 	nodeState, ok := jobState.Nodes[nodeID]
 	if !ok {
-		nodeState = model.JobNodeState{
-			Shards: map[int]model.JobShardState{},
-		}
+		nodeState = model.NewJobNodeState()
 	}
-	shardState, ok := nodeState.Shards[shardIndex]
+	shardState, ok := nodeState.GetShard(shardIndex)
 	if !ok {
 		shardState = model.JobShardState{
 			NodeID:     nodeID,
@@ -326,7 +324,7 @@ func (d *InMemoryDatastore) UpdateShardState(
 		shardState.PublishedResult = update.PublishedResult
 	}
 
-	nodeState.Shards[shardIndex] = shardState
+	nodeState.PutShard(shardIndex, shardState)
 	jobState.Nodes[nodeID] = nodeState
 	d.states[jobID] = jobState
 	return nil

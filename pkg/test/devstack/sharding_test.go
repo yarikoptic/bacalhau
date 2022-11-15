@@ -129,7 +129,7 @@ func (suite *ShardingSuite) TestEndToEnd() {
 
 	var assertShardCounts job.CheckStatesFunction = func(js model.JobState) (bool, error) {
 		for _, node := range js.Nodes {
-			if len(node.Shards) != batchCount {
+			if node.ShardCount() != batchCount {
 				return false, nil
 			}
 		}

@@ -293,9 +293,9 @@ func (resolver *StateResolver) CheckShardStates(
 func FlattenShardStates(jobState model.JobState) []model.JobShardState {
 	ret := []model.JobShardState{}
 	for _, nodeState := range jobState.Nodes {
-		for _, shardState := range nodeState.Shards { //nolint:gocritic
+		nodeState.RangeShards(func(_ int, shardState model.JobShardState) {
 			ret = append(ret, shardState)
-		}
+		})
 	}
 	return ret
 }
@@ -303,11 +303,11 @@ func FlattenShardStates(jobState model.JobState) []model.JobShardState {
 func GetStatesForShardIndex(jobState model.JobState, shardIndex int) []model.JobShardState {
 	ret := []model.JobShardState{}
 	for _, nodeState := range jobState.Nodes {
-		for _, shardState := range nodeState.Shards { //nolint:gocritic
+		nodeState.RangeShards(func(_ int, shardState model.JobShardState) {
 			if shardState.ShardIndex == shardIndex {
 				ret = append(ret, shardState)
 			}
-		}
+		})
 	}
 	return ret
 }

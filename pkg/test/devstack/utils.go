@@ -240,14 +240,14 @@ func RunDeterministicVerifierTest( //nolint:funlen
 	failedCount := 0
 
 	for _, state := range state.Nodes {
-		for _, shard := range state.Shards { //nolint:gocritic
+		state.RangeShards(func(_ int, shard model.JobShardState) {
 			require.True(t, shard.VerificationResult.Complete)
 			if shard.VerificationResult.Result {
 				verifiedCount++
 			} else {
 				failedCount++
 			}
-		}
+		})
 	}
 
 	require.Equal(t, args.ExpectedPassed*args.ShardCount, verifiedCount, "verified count should be correct")
