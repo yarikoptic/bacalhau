@@ -1,0 +1,1 @@
+create table jobs (job_id int, job_json json);
