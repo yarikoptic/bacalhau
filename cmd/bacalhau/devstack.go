@@ -8,7 +8,6 @@ import (
 
 	"github.com/filecoin-project/bacalhau/pkg/requesternode"
 
-	"github.com/filecoin-project/bacalhau/pkg/computenode"
 	"github.com/filecoin-project/bacalhau/pkg/config"
 	"github.com/filecoin-project/bacalhau/pkg/devstack"
 	"github.com/filecoin-project/bacalhau/pkg/system"
@@ -45,6 +44,7 @@ func newDevStackOptions() *devstack.DevStackOptions {
 		PublicIPFSMode:    false,
 		EstuaryAPIKey:     os.Getenv("ESTUARY_API_KEY"),
 		LocalNetworkLotus: false,
+		SimulatorURL:      "",
 	}
 }
 
@@ -68,6 +68,10 @@ func init() { //nolint:gochecknoinits // Using init in cobra command is idomatic
 	devstackCmd.PersistentFlags().BoolVar(
 		&ODs.LocalNetworkLotus, "lotus-node", ODs.LocalNetworkLotus,
 		"Also start a Lotus FileCoin instance",
+	)
+	devstackCmd.PersistentFlags().StringVar(
+		&ODs.SimulatorURL, "simulator-url", ODs.SimulatorURL,
+		`Use the simulator transport at the given URL`,
 	)
 
 	setupJobSelectionCLIFlags(devstackCmd)
@@ -114,11 +118,7 @@ var devstackCmd = &cobra.Command{
 			}
 		}
 
-		computeNodeConfig := computenode.ComputeNodeConfig{
-			JobSelectionPolicy:    getJobSelectionConfig(),
-			CapacityManagerConfig: getCapacityManagerConfig(),
-		}
-
+		computeConfig := getComputeConfig()
 		if ODs.LocalNetworkLotus {
 			cmd.Println("Note that starting up the Lotus node can take many minutes!")
 		}
@@ -126,9 +126,9 @@ var devstackCmd = &cobra.Command{
 		var stack *devstack.DevStack
 		var stackErr error
 		if IsNoop {
-			stack, stackErr = devstack.NewNoopDevStack(ctx, cm, *ODs, computeNodeConfig, requesternode.NewDefaultRequesterNodeConfig())
+			stack, stackErr = devstack.NewNoopDevStack(ctx, cm, *ODs, computeConfig, requesternode.NewDefaultRequesterNodeConfig())
 		} else {
-			stack, stackErr = devstack.NewStandardDevStack(ctx, cm, *ODs, computeNodeConfig, requesternode.NewDefaultRequesterNodeConfig())
+			stack, stackErr = devstack.NewStandardDevStack(ctx, cm, *ODs, computeConfig, requesternode.NewDefaultRequesterNodeConfig())
 		}
 		if stackErr != nil {
 			return stackErr

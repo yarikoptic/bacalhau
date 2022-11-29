@@ -1,4 +1,4 @@
-//go:build integration
+//go:build integration || !unit
 
 package devstack
 
@@ -6,9 +6,10 @@ import (
 	"context"
 	"testing"
 
+	"github.com/filecoin-project/bacalhau/pkg/node"
 	"github.com/filecoin-project/bacalhau/pkg/requesternode"
+	testutils "github.com/filecoin-project/bacalhau/pkg/test/utils"
 
-	"github.com/filecoin-project/bacalhau/pkg/computenode"
 	"github.com/filecoin-project/bacalhau/pkg/logger"
 	_ "github.com/filecoin-project/bacalhau/pkg/logger"
 	"github.com/filecoin-project/bacalhau/pkg/model"
@@ -38,14 +39,14 @@ func (suite *DevstackSubmitSuite) SetupTest() {
 func (suite *DevstackSubmitSuite) TestEmptySpec() {
 	ctx := context.Background()
 
-	stack, cm := SetupTest(
+	stack, cm := testutils.SetupTest(
 		ctx,
 		suite.T(),
 
 		1,
 		0,
 		false,
-		computenode.NewDefaultComputeNodeConfig(),
+		node.NewComputeConfigWithDefaults(),
 		requesternode.NewDefaultRequesterNodeConfig(),
 	)
 

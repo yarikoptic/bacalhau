@@ -9,7 +9,6 @@ import (
 
 	"github.com/filecoin-project/bacalhau/pkg/requesternode"
 
-	"github.com/filecoin-project/bacalhau/pkg/computenode"
 	"github.com/filecoin-project/bacalhau/pkg/devstack"
 	"github.com/filecoin-project/bacalhau/pkg/executor"
 	noop_executor "github.com/filecoin-project/bacalhau/pkg/executor/noop"
@@ -30,7 +29,7 @@ func SetupTest(
 	nodes int, badActors int,
 	lotusNode bool,
 	//nolint:gocritic
-	computeNodeConfig computenode.ComputeNodeConfig,
+	computeConfig node.ComputeConfig,
 	requesterNodeConfig requesternode.RequesterNodeConfig,
 ) (*devstack.DevStack, *system.CleanupManager) {
 	require.NoError(t, system.InitConfigForTesting(t))
@@ -43,7 +42,7 @@ func SetupTest(
 		LocalNetworkLotus: lotusNode,
 	}
 
-	stack, err := devstack.NewStandardDevStack(ctx, cm, options, computeNodeConfig, requesterNodeConfig)
+	stack, err := devstack.NewStandardDevStack(ctx, cm, options, computeConfig, requesterNodeConfig)
 	require.NoError(t, err)
 
 	t.Cleanup(cm.Cleanup)
@@ -74,75 +73,6 @@ type DeterministicVerifierTestArgs struct {
 	Confidence     int
 	ExpectedPassed int
 	ExpectedFailed int
-}
-
-func RunDeterministicVerifierTests(
-	ctx context.Context,
-	t *testing.T,
-	submitJob func(
-		apiClient *publicapi.APIClient,
-		args DeterministicVerifierTestArgs,
-	) (string, error),
-) {
-	// test that we must have more than one node to run the job
-	t.Run("more-than-one-node-to-run-the-job", func(t *testing.T) {
-		RunDeterministicVerifierTest(ctx, t, submitJob, DeterministicVerifierTestArgs{
-			NodeCount:      1,
-			ShardCount:     2,
-			BadActors:      0,
-			Confidence:     0,
-			ExpectedPassed: 0,
-			ExpectedFailed: 1,
-		})
-	})
-
-	// test that if all nodes agree then all are verified
-	t.Run("all-nodes-agree-then-all-are-verified", func(t *testing.T) {
-		RunDeterministicVerifierTest(ctx, t, submitJob, DeterministicVerifierTestArgs{
-			NodeCount:      3,
-			ShardCount:     2,
-			BadActors:      0,
-			Confidence:     0,
-			ExpectedPassed: 3,
-			ExpectedFailed: 0,
-		})
-	})
-
-	// test that if one node mis-behaves we catch it but the others are verified
-	t.Run("one-node-misbehaves-but-others-are-verified", func(t *testing.T) {
-		RunDeterministicVerifierTest(ctx, t, submitJob, DeterministicVerifierTestArgs{
-			NodeCount:      3,
-			ShardCount:     2,
-			BadActors:      1,
-			Confidence:     0,
-			ExpectedPassed: 2,
-			ExpectedFailed: 1,
-		})
-	})
-
-	// test that is there is a draw between good and bad actors then none are verified
-	t.Run("draw-between-good-and-bad-actors-then-none-are-verified", func(t *testing.T) {
-		RunDeterministicVerifierTest(ctx, t, submitJob, DeterministicVerifierTestArgs{
-			NodeCount:      2,
-			ShardCount:     2,
-			BadActors:      1,
-			Confidence:     0,
-			ExpectedPassed: 0,
-			ExpectedFailed: 2,
-		})
-	})
-
-	// test that with a larger group the confidence setting gives us a lower threshold
-	t.Run("larger-group-with-confidence-gives-lower-threshold", func(t *testing.T) {
-		RunDeterministicVerifierTest(ctx, t, submitJob, DeterministicVerifierTestArgs{
-			NodeCount:      5,
-			ShardCount:     2,
-			BadActors:      2,
-			Confidence:     4,
-			ExpectedPassed: 0,
-			ExpectedFailed: 5,
-		})
-	})
 }
 
 func RunDeterministicVerifierTest( //nolint:funlen
@@ -180,7 +110,7 @@ func RunDeterministicVerifierTest( //nolint:funlen
 
 	executorsFactory := node.ExecutorsFactoryFunc(func(
 		ctx context.Context, nodeConfig node.NodeConfig) (executor.ExecutorProvider, error) {
-		return executor_util.NewNoopExecutors(ctx, cm, noop_executor.ExecutorConfig{
+		return executor_util.NewNoopExecutors(noop_executor.ExecutorConfig{
 			IsBadActor: nodeConfig.IsBadActor,
 			ExternalHooks: noop_executor.ExecutorConfigExternalHooks{
 				JobHandler: func(ctx context.Context, shard model.JobShard, resultsDir string) (*model.RunCommandResult, error) {
@@ -198,7 +128,7 @@ func RunDeterministicVerifierTest( //nolint:funlen
 					return runOutput, err
 				},
 			},
-		})
+		}), nil
 	})
 
 	injector := node.NewStandardNodeDependencyInjector()
@@ -209,7 +139,7 @@ func RunDeterministicVerifierTest( //nolint:funlen
 		ctx,
 		cm,
 		options,
-		computenode.NewDefaultComputeNodeConfig(),
+		node.NewComputeConfigWithDefaults(),
 		requesternode.NewDefaultRequesterNodeConfig(),
 		injector,
 	)

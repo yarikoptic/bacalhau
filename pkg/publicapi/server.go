@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/filecoin-project/bacalhau/docs"
-	"github.com/filecoin-project/bacalhau/pkg/computenode"
 	"github.com/filecoin-project/bacalhau/pkg/localdb"
 	"github.com/filecoin-project/bacalhau/pkg/logger"
 	"github.com/filecoin-project/bacalhau/pkg/model"
@@ -20,6 +19,7 @@ import (
 	"github.com/filecoin-project/bacalhau/pkg/system"
 	"github.com/filecoin-project/bacalhau/pkg/transport"
 	"github.com/filecoin-project/bacalhau/pkg/version"
+	"github.com/gorilla/websocket"
 
 	"github.com/c2h5oh/datasize"
 	"github.com/didip/tollbooth/v7"
@@ -58,15 +58,18 @@ var DefaultAPIServerConfig = &APIServerConfig{
 
 // APIServer configures a node's public REST API.
 type APIServer struct {
-	localdb          localdb.LocalDB
-	transport        transport.Transport
-	Requester        *requesternode.RequesterNode
-	ComputeNode      *computenode.ComputeNode
-	Publishers       publisher.PublisherProvider
-	StorageProviders storage.StorageProvider
-	Host             string
-	Port             int
-	Config           *APIServerConfig
+	localdb            localdb.LocalDB
+	transport          transport.Transport
+	Requester          *requesternode.RequesterNode
+	DebugInfoProviders []model.DebugInfoProvider
+	Publishers         publisher.PublisherProvider
+	StorageProviders   storage.StorageProvider
+	Host               string
+	Port               int
+	Config             *APIServerConfig
+	// jobId or "" (for all events) -> connections for that subscription
+	Websockets      map[string][]*websocket.Conn
+	WebsocketsMutex sync.RWMutex
 }
 
 func init() { //nolint:gochecknoinits
@@ -85,7 +88,7 @@ func NewServer(
 	localdb localdb.LocalDB,
 	transport transport.Transport,
 	requester *requesternode.RequesterNode,
-	computeNode *computenode.ComputeNode,
+	debugInfoProviders []model.DebugInfoProvider,
 	publishers publisher.PublisherProvider,
 	storageProviders storage.StorageProvider,
 ) *APIServer {
@@ -96,10 +99,11 @@ func NewServer(
 		localdb,
 		transport,
 		requester,
-		computeNode,
+		debugInfoProviders,
 		publishers,
 		storageProviders,
-		DefaultAPIServerConfig)
+		DefaultAPIServerConfig,
+	)
 }
 
 func NewServerWithConfig(
@@ -109,20 +113,21 @@ func NewServerWithConfig(
 	localdb localdb.LocalDB,
 	transport transport.Transport,
 	requester *requesternode.RequesterNode,
-	computeNode *computenode.ComputeNode,
+	debugInfoProviders []model.DebugInfoProvider,
 	publishers publisher.PublisherProvider,
 	storageProviders storage.StorageProvider,
 	config *APIServerConfig) *APIServer {
 	a := &APIServer{
-		localdb:          localdb,
-		transport:        transport,
-		Requester:        requester,
-		ComputeNode:      computeNode,
-		Publishers:       publishers,
-		StorageProviders: storageProviders,
-		Host:             host,
-		Port:             port,
-		Config:           config,
+		localdb:            localdb,
+		transport:          transport,
+		Requester:          requester,
+		DebugInfoProviders: debugInfoProviders,
+		Publishers:         publishers,
+		StorageProviders:   storageProviders,
+		Host:               host,
+		Port:               port,
+		Config:             config,
+		Websockets:         make(map[string][]*websocket.Conn),
 	}
 	return a
 }
@@ -148,7 +153,7 @@ func (apiServer *APIServer) GetURI() string {
 func (apiServer *APIServer) ListenAndServe(ctx context.Context, cm *system.CleanupManager) error {
 	hostID := apiServer.Requester.ID
 
-	// dynamically load the git tag for Swagger UI
+	// dynamically write the git tag to the Swagger docs
 	docs.SwaggerInfo.Version = version.Get().GitVersion
 
 	// TODO: #677 Significant issue, when client returns error to any of these commands, it still submits to server
@@ -168,6 +173,7 @@ func (apiServer *APIServer) ListenAndServe(ctx context.Context, cm *system.Clean
 	sm.Handle(apiServer.chainHandlers("/livez", apiServer.livez))
 	sm.Handle(apiServer.chainHandlers("/readyz", apiServer.readyz))
 	sm.Handle(apiServer.chainHandlers("/debug", apiServer.debug))
+	sm.HandleFunc("/websocket", apiServer.websocket)
 	sm.Handle("/metrics", promhttp.Handler())
 	sm.Handle("/swagger/", httpSwagger.WrapHandler)
 

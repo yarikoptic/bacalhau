@@ -5,7 +5,9 @@ from sys import argv
 
 import subprocess
 
-STARTING_SEMVER = semver.parse("0.3.10")
+STARTING_SEMVER = semver.parse("0.3.11")
+SCHEMA_DIR = Path(__file__).parent.parent.parent / "schema.bacalhau.org"
+LATEST_SEMVER = None
 
 # If --rebuild-all is passed, we will rebuild all schema files, even if they
 # already exist in the schema.bacalhau.org directory
@@ -17,7 +19,7 @@ if len(argv) > 1 and argv[1] == "--rebuild-all":
 rootPath = Path(__file__).parent.parent.parent
 
 repo = git.Repo(rootPath)
-repo.branches.main.checkout()
+repo.heads.main.checkout()
 
 tagList = repo.git.ls_remote("--tags", "origin").split("refs/tags/")[1:]
 
@@ -44,6 +46,17 @@ for longTag in tagList:
         continue
 
 for tag in listOfTagsToBuild:
-    repo.active_branch.checkout(f"v{tag}")
-    subprocess.call(["make", "release"], cwd=rootPath)
-    output = subprocess.call(["bin/bacalhau", "validate", "--output-schema"], cwd=rootPath, stdout=subprocess.PIPE)
+    print(f"Building schema files for tag {tag}")
+    repo.git.checkout(tag)
+    subprocess.run(["python", "scripts/build_schema_files/main.py", "--rebuild-all"])
+
+if rebuild_all:
+    for tag in listOfTagsToBuild[0:-1]:
+        repo.git.checkout(f"v{tag}")
+        subprocess.call(["go", "mod", "vendor"], cwd=rootPath)
+        subprocess.call(["make", "build"], cwd=rootPath)
+        proc = subprocess.Popen(
+            ["bin/darwin_arm64/bacalhau", "validate", "--output-schema"], cwd=rootPath, stdout=subprocess.PIPE
+        )
+        schemaFile = SCHEMA_DIR / f"v{tag}.json"
+        schemaFile.write_text(proc.stdout.read().decode("utf-8"))

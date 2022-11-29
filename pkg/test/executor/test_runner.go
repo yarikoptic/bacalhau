@@ -5,9 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/filecoin-project/bacalhau/pkg/computenode"
 	_ "github.com/filecoin-project/bacalhau/pkg/logger"
 	"github.com/filecoin-project/bacalhau/pkg/model"
+	"github.com/filecoin-project/bacalhau/pkg/node"
+	"github.com/filecoin-project/bacalhau/pkg/requesternode"
 	"github.com/filecoin-project/bacalhau/pkg/test/scenario"
 	testutils "github.com/filecoin-project/bacalhau/pkg/test/utils"
 	"github.com/stretchr/testify/require"
@@ -22,23 +23,24 @@ func RunTestCase(
 	ctx := context.Background()
 	spec := testCase.Spec
 
-	stack := testutils.NewDevStack(ctx, t, computenode.NewDefaultComputeNodeConfig())
-	defer stack.Node.CleanupManager.Cleanup()
-
-	executor, err := stack.Node.Executors.GetExecutor(ctx, spec.Engine)
+	stack, _ := testutils.SetupTest(ctx, t, testNodeCount, 0, false,
+		node.NewComputeConfigWithDefaults(),
+		requesternode.NewDefaultRequesterNodeConfig(),
+	)
+	executor, err := stack.Nodes[0].Executors.GetExecutor(ctx, spec.Engine)
 	require.NoError(t, err)
 
 	isInstalled, err := executor.IsInstalled(ctx)
 	require.NoError(t, err)
 	require.True(t, isInstalled)
 
-	prepareStorage := func(getStorage scenario.ISetupStorage) []model.StorageSpec {
+	prepareStorage := func(getStorage scenario.SetupStorage) []model.StorageSpec {
 		if getStorage == nil {
 			return []model.StorageSpec{}
 		}
 
 		storageList, stErr := getStorage(ctx,
-			model.StorageSourceIPFS, stack.IpfsStack.IPFSClients[:testNodeCount]...)
+			model.StorageSourceIPFS, stack.IPFSClients()[:testNodeCount]...)
 		require.NoError(t, stErr)
 
 		for _, storageSpec := range storageList {
