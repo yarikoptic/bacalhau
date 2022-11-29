@@ -3,6 +3,7 @@ package sqlite
 import (
 	"context"
 	"embed"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -21,19 +22,21 @@ import (
 )
 
 type SQLiteDatastore struct {
-	mtx      sync.RWMutex
-	filename string
-	db       *sql.DB
+	mtx        sync.RWMutex
+	filename   string
+	migrations string
+	db         *sql.DB
 }
 
-func NewSQLiteDatastore(filename string) (*SQLiteDatastore, error) {
+func NewSQLiteDatastore(filename, migrations string) (*SQLiteDatastore, error) {
 	db, err := sql.Open("sqlite", filename)
 	if err != nil {
 		return nil, err
 	}
 	datastore := &SQLiteDatastore{
-		db:       db,
-		filename: filename,
+		db:         db,
+		filename:   filename,
+		migrations: migrations,
 	}
 	err = datastore.migrate()
 	if err != nil {
@@ -55,10 +58,19 @@ func (d *SQLiteDatastore) GetJob(ctx context.Context, id string) (*model.Job, er
 	//nolint:ineffassign,staticcheck
 	ctx, span := system.GetTracer().Start(ctx, "pkg/localdb/sqlite/SQLiteDatastore.GetJob")
 	defer span.End()
-
-	d.mtx.RLock()
-	defer d.mtx.RUnlock()
-	return nil, nil
+	row, err := d.db.Query("select * from job where id like '$1%' limit 1")
+	if err != nil {
+		return nil, err
+	}
+	defer row.Close()
+	for row.Next() { // Iterate and fetch the records from result cursor
+		var id string
+		var created time.Time
+		var jobdata model.Job
+		row.Scan(&id, &created, &jobdata)
+		return &jobdata, nil
+	}
+	return nil, fmt.Errorf("error-job-not-found")
 }
 
 // Get Job Events from a job ID
@@ -98,6 +110,17 @@ func (d *SQLiteDatastore) AddJob(ctx context.Context, j *model.Job) error {
 	//nolint:ineffassign,staticcheck
 	ctx, span := system.GetTracer().Start(ctx, "pkg/localdb/sqlite/SQLiteDatastore.AddJob")
 	defer span.End()
+	sqlStatement := `
+INSERT INTO job (id, created, jobdata)
+VALUES ($1, $2, $3)`
+	jobData, err := json.Marshal(j)
+	if err != nil {
+		return err
+	}
+	_, err = d.db.Exec(sqlStatement, j.ID, j.CreatedAt.UTC().Format(time.RFC3339), string(jobData))
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -105,6 +128,17 @@ func (d *SQLiteDatastore) AddEvent(ctx context.Context, jobID string, ev model.J
 	//nolint:ineffassign,staticcheck
 	ctx, span := system.GetTracer().Start(ctx, "pkg/localdb/sqlite/SQLiteDatastore.AddEvent")
 	defer span.End()
+	sqlStatement := `
+INSERT INTO job_event (job_id, created, eventdata)
+VALUES ($1, $2, $3)`
+	eventData, err := json.Marshal(ev)
+	if err != nil {
+		return err
+	}
+	_, err = d.db.Exec(sqlStatement, jobID, ev.EventTime.UTC().Format(time.RFC3339), string(eventData))
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -112,6 +146,17 @@ func (d *SQLiteDatastore) AddLocalEvent(ctx context.Context, jobID string, ev mo
 	//nolint:ineffassign,staticcheck
 	ctx, span := system.GetTracer().Start(ctx, "pkg/localdb/sqlite/SQLiteDatastore.AddLocalEvent")
 	defer span.End()
+	sqlStatement := `
+INSERT INTO local_event (job_id, created, eventdata)
+VALUES ($1, $2, $3)`
+	eventData, err := json.Marshal(ev)
+	if err != nil {
+		return err
+	}
+	_, err = d.db.Exec(sqlStatement, jobID, time.Now().UTC().Format(time.RFC3339), string(eventData))
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -149,11 +194,11 @@ func (d *SQLiteDatastore) getJob(id string) (*model.Job, error) {
 	return nil, nil
 }
 
-//go:embed migrations/*.sql
+//go:embed migrations/**/*.sql
 var fs embed.FS
 
 func (d *SQLiteDatastore) migrate() error {
-	files, err := iofs.New(fs, "migrations")
+	files, err := iofs.New(fs, d.migrations)
 	if err != nil {
 		return err
 	}

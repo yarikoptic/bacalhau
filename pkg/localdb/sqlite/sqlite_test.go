@@ -3,13 +3,16 @@
 package sqlite
 
 import (
+	"context"
 	"io/ioutil"
 	"log"
 	"testing"
 
 	"database/sql"
 
+	"github.com/davecgh/go-spew/spew"
 	_ "github.com/filecoin-project/bacalhau/pkg/logger"
+	"github.com/filecoin-project/bacalhau/pkg/model"
 	"github.com/stretchr/testify/require"
 	_ "modernc.org/sqlite"
 )
@@ -17,7 +20,7 @@ import (
 func TestSQLiteMigrations(t *testing.T) {
 	datafile, err := ioutil.TempFile("", "sqlite-test-*.db")
 	require.NoError(t, err)
-	_, err = NewSQLiteDatastore(datafile.Name())
+	_, err = NewSQLiteDatastore(datafile.Name(), "migrations/test")
 	require.NoError(t, err)
 
 	db, err := sql.Open("sqlite", datafile.Name())
@@ -42,4 +45,22 @@ select job_id from jobs;
 	err = rows.Err()
 	require.NoError(t, err)
 	require.Equal(t, id, 123)
+}
+
+func TestRoundtripJob(t *testing.T) {
+	ctx := context.Background()
+	datafile, err := ioutil.TempFile("", "sqlite-test-*.db")
+	require.NoError(t, err)
+	db, err := NewSQLiteDatastore(datafile.Name(), "migrations/prod")
+	require.NoError(t, err)
+	job := &model.Job{
+		ID:              "hellojob",
+		RequesterNodeID: "oranges",
+	}
+	err = db.AddJob(ctx, job)
+	require.NoError(t, err)
+	loadedJob, err := db.GetJob(ctx, job.ID)
+	require.NoError(t, err)
+
+	spew.Dump(loadedJob)
 }
