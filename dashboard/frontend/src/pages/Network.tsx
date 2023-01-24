@@ -1,4 +1,4 @@
-import React, { FC, useState, useEffect, useCallback } from 'react'
+import React, { FC, useState, useEffect, useCallback, useRef } from 'react'
 import prettyBytes from 'pretty-bytes'
 import Grid from '@mui/material/Grid'
 import Container from '@mui/material/Container'
@@ -6,13 +6,10 @@ import useApi from '../hooks/useApi'
 import useLoadingErrorHandler from '../hooks/useLoadingErrorHandler'
 import Box from '@mui/material/Box'
 import Card from '@mui/material/Card'
-import CardActions from '@mui/material/CardActions'
 import CardContent from '@mui/material/CardContent'
-import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
 import {
-  ClusterMapResult,
-  NodeEvent,
+  NodeInfo,
 } from '../types'
 import {
   getShortId,
@@ -22,49 +19,30 @@ import {
   subtractFloat,
 } from '../utils/format'
 
-import ForceGraph from '../components/network/ForceGraph'
-
 const Network: FC = () => {
-  const [ mapData, setMapData ] = useState<ClusterMapResult>()
-  const [ nodeData, setNodeData ] = useState<Record<string, NodeEvent>>({})
+  const [ nodeData, setNodeData ] = useState<Record<string, NodeInfo>>({})
   const api = useApi()
   const loadingErrorHandler = useLoadingErrorHandler()
 
-  const loadMapData = useCallback(async () => {
-    const handler = loadingErrorHandler(async () => {
-      const mapData = await api.get('/api/v1/nodes/map', {})
-      setMapData(mapData)
-    })
-    await handler()
-  }, [])
-
   const loadNodeData = useCallback(async () => {
     const handler = loadingErrorHandler(async () => {
-      const nodeData = await api.get<Record<string, NodeEvent>>('/api/v1/nodes', {})
+      const nodeData = await api.get<Record<string, NodeInfo>>('/api/v1/nodes', {})
       if (nodeData) {
-        Object.keys(nodeData).forEach(nodeID => {
-          const originalData = nodeData[nodeID]
-          const runningJobsDebugInfo = originalData.DebugInfo.find(info => info.component === 'running_jobs')
-          originalData.RunningJobs = []
-          if(runningJobsDebugInfo) {
-            originalData.RunningJobs = JSON.parse(runningJobsDebugInfo.info)
-          }
-        })
         setNodeData(nodeData)
       }
     })
     await handler()
   }, [])
 
+
   useEffect(() => {
-    loadMapData()
     loadNodeData()
   }, [])
 
   return (
     <Container maxWidth={ 'xl' } sx={{ mt: 4, mb: 4 }}>
       <Grid container spacing={3}>
-        <Grid item xs={6}>
+        <Grid item xs={12}>
           <Box sx={{
             display: 'inline-block',
           }}>
@@ -72,48 +50,54 @@ const Network: FC = () => {
               nodeData && Object.keys(nodeData).map((nodeId, i) => {
                 const node = nodeData[nodeId]
                 return (
-                  <Card sx={{ minWidth: 300, display: 'inline-block', m: 1 }} key={ i }>
+                  <Card sx={{ minWidth: 200, display: 'inline-block', m: 1 }} key={ i }>
                     <CardContent>
                       <Typography variant="h5" component="div">
-                        { getShortId(node.NodeID) }
+                        { getShortId(node.PeerInfo.ID) }
                       </Typography>
                       <ul>
                         <li>
                           <Typography variant="body2">
                             <span style={{minWidth: '110px', display: 'inline-block'}}>CPU Usage:</span>
-                            <strong>{ subtractFloat(node.TotalCapacity.CPU, node.AvailableCapacity.CPU) }</strong>
+                            <strong>{ subtractFloat(node.ComputeNodeInfo.MaxCapacity.CPU, node.ComputeNodeInfo.AvailableCapacity.CPU) }</strong>
                             &nbsp;/&nbsp;
-                            <strong>{ formatFloat(node.AvailableCapacity.CPU) }</strong>
+                            <strong>{ formatFloat(node.ComputeNodeInfo.MaxCapacity.CPU) }</strong>
                           </Typography>
                         </li>
                         <li>
                           <Typography variant="body2">
                             <span style={{minWidth: '110px', display: 'inline-block'}}>Memory Usage:</span>
-                            <strong>{ prettyBytes(subtractFloat(node.TotalCapacity.Memory, node.AvailableCapacity.Memory)) }</strong>
+                            <strong>{ prettyBytes(subtractFloat(node.ComputeNodeInfo.MaxCapacity.Memory, node.ComputeNodeInfo.AvailableCapacity.Memory)) }</strong>
                             &nbsp;/&nbsp;
-                            <strong>{ prettyBytes(node.AvailableCapacity.Memory || 0) }</strong>
+                            <strong>{ prettyBytes(node.ComputeNodeInfo.MaxCapacity.Memory || 0) }</strong>
                           </Typography>
                         </li>
                         <li>
                           <Typography variant="body2">
                             <span style={{minWidth: '110px', display: 'inline-block'}}>Disk Usage:</span>
-                            <strong>{ prettyBytes(subtractFloat(node.TotalCapacity.Disk, node.AvailableCapacity.Disk)) }</strong>
+                            <strong>{ prettyBytes(subtractFloat(node.ComputeNodeInfo.MaxCapacity.Disk, node.ComputeNodeInfo.AvailableCapacity.Disk)) }</strong>
                             &nbsp;/&nbsp;
-                            <strong>{ prettyBytes(node.AvailableCapacity.Disk || 0) }</strong>
+                            <strong>{ prettyBytes(node.ComputeNodeInfo.MaxCapacity.Disk || 0) }</strong>
                           </Typography>
                         </li>
                         <li>
                           <Typography variant="body2">
                             <span style={{minWidth: '110px', display: 'inline-block'}}>GPU Usage:</span>
-                            <strong>{ subtractFloat(node.TotalCapacity.GPU, node.AvailableCapacity.GPU) }</strong>
+                            <strong>{ subtractFloat(node.ComputeNodeInfo.MaxCapacity.GPU, node.ComputeNodeInfo.AvailableCapacity.GPU) }</strong>
                             &nbsp;/&nbsp;
-                            <strong>{ node.AvailableCapacity.GPU || 0 }</strong>
+                            <strong>{ node.ComputeNodeInfo.MaxCapacity.GPU || 0 }</strong>
                           </Typography>
                         </li>
                         <li>
                           <Typography variant="body2">
                             <span style={{minWidth: '110px', display: 'inline-block'}}>Running Jobs:</span>
-                            <strong>{ node.RunningJobs.length || 0 }</strong>
+                            <strong>{ node.ComputeNodeInfo.RunningExecutions || 0 }</strong>
+                          </Typography>
+                        </li>
+                        <li>
+                          <Typography variant="body2">
+                            <span style={{minWidth: '110px', display: 'inline-block'}}>Enqueued Jobs:</span>
+                            <strong>{ node.ComputeNodeInfo.EnqueuedExecutions || 0 }</strong>
                           </Typography>
                         </li>
                       </ul>
@@ -123,13 +107,6 @@ const Network: FC = () => {
               })
             }
           </Box>
-        </Grid>
-        <Grid item xs={6}>
-          {
-            mapData && (
-              <ForceGraph data={ mapData } />
-            )
-          }
         </Grid>
       </Grid>
     </Container>
