@@ -79,7 +79,7 @@ func runStableDiffusion(prompt string, testing bool) (string, error) {
 	}
 	j.Spec.Docker.Entrypoint = append(j.Spec.Docker.Entrypoint, prompt)
 
-	submittedJob, err := client.Submit(context.Background(), j)
+	submittedJob, err := client.Submit(context.Background(), j, nil)
 	if err != nil {
 		return err.Error(), err
 	}
