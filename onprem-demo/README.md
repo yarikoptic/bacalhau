@@ -32,6 +32,7 @@ In another terminal - we allow list our log folder and start devstack:
 export FOLDER=/tmp/bacalhau-onprem-demo/data
 export PREDICTABLE_API_PORT=1
 export BACALHAU_LOCAL_DIRECTORY_ALLOW_LIST=$FOLDER
+export SKIP_IMAGE_PULL=1
 make devstack
 ```
 
@@ -39,11 +40,22 @@ make devstack
 
 This job will run for a long time - it will mount and tail the log file and trigger the bacalhau streaming results http endpoint for each line it finds.
 
+First we build the image for the job:
+
 ```bash
+export SOURCE_LOGS_IMAGE=bacalhau-onprem-demo/source-logs:latest
+docker build -t $SOURCE_LOGS_IMAGE -f Dockerfile.onprem-source-logs .
+```
+
+Then we create the job:
+
+```bash
+export SOURCE_LOGS_IMAGE=bacalhau-onprem-demo/source-logs:latest
 export BACALHAU_API_HOST=127.0.0.1
 export BACALHAU_API_PORT=20000
 export FOLDER=/tmp/bacalhau-onprem-demo/data
 export LOGFILE="$FOLDER/accesspoint.log"
+export HTTP_ENDPOINT=http://127.0.0.1:80/test
 cat ./onprem-demo/job.yaml | envsubst > /tmp/onprem-job.yaml
 bacalhau create /tmp/onprem-job.yaml
 ```
