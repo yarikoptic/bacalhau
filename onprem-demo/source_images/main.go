@@ -37,7 +37,7 @@ func main() {
 				if event.Has(fsnotify.Write) {
 					log.Println("modified file:", event.Name)
 					// XXX what if the whole file write isn't finished yet
-					err, _ := copy(event.Name, imageSinkDir+"/"+"image.jpg")
+					_, err := copy(event.Name, imageSinkDir+"/"+"image.jpg")
 					if err != nil {
 						log.Printf("error copying file: %s", err)
 					}
