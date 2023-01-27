@@ -1,0 +1,19 @@
+Spec:
+    Engine: Docker
+    Verifier: Noop
+    Publisher: IPFS
+    Docker:
+        Image: ubuntu
+        Entrypoint:
+            - cat
+            - /app.log
+    outputs:
+        - Name: outputs
+          path: /outputs
+    inputs:
+        - Name: inputs
+          path: /app.log
+          StorageSource: LocalDirectory
+          SourcePath: ${LOGFILE}
+Deal:
+    Concurrency: 1
