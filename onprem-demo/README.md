@@ -17,11 +17,23 @@ This will place the `bacalhau` binary in the `/usr/local/bin` folder.
 First we make a folder & log file on the host that is where the logs will stream to and then run the script that is generating logs - this will be replaced by a journatlctl command running on the WIFI access point node:
 
 ```bash
-export FOLDER=/tmp/bacalhau-onprem-demo/data
-export LOGFILE="$FOLDER/accesspoint.log"
-mkdir -p $FOLDER
+source ./onprem-demo/scripts/variables.sh
+mkdir -p $LOGFOLDER
 touch $LOGFILE
 bash ./onprem-demo/scripts/generate-logs.sh $LOGFILE
+```
+
+#### webcam
+
+In another terminal - we need to setup the webcam so it puts images into a specific folder.
+
+```bash
+source ./onprem-demo/scripts/variables.sh
+mkdir -p $IMAGEFOLDER
+while true; do
+  streamer -c /dev/video0 -b 16 -o $IMAGEFOLDER/cam01-$(date +%s).jpeg;
+  sleep 1;
+done
 ```
 
 #### devstack
@@ -29,10 +41,7 @@ bash ./onprem-demo/scripts/generate-logs.sh $LOGFILE
 In another terminal - we allow list our log folder and start devstack:
 
 ```bash
-export FOLDER=/tmp/bacalhau-onprem-demo/data
-export PREDICTABLE_API_PORT=1
-export BACALHAU_LOCAL_DIRECTORY_ALLOW_LIST=$FOLDER
-export SKIP_IMAGE_PULL=1
+source ./onprem-demo/scripts/variables.sh
 make devstack
 ```
 
@@ -43,19 +52,17 @@ This job will run for a long time - it will mount and tail the log file and trig
 First we build the image for the job:
 
 ```bash
-export SOURCE_LOGS_IMAGE=bacalhau-onprem-demo/source-logs:latest
-docker build -t $SOURCE_LOGS_IMAGE -f Dockerfile.onprem-source-logs .
+source ./onprem-demo/scripts/variables.sh
+docker build -t $SOURCE_LOGS_DOCKER_IMAGE -f Dockerfile.onprem-source-logs .
+cat ./onprem-demo/onprem-demo-job-logs.yaml | envsubst > /tmp/onprem-demo-job-logs.yaml
+bacalhau create /tmp/onprem-demo-job-logs.yaml
 ```
 
-Then we create the job:
+#### webcam job
 
 ```bash
-export SOURCE_LOGS_IMAGE=bacalhau-onprem-demo/source-logs:latest
-export BACALHAU_API_HOST=127.0.0.1
-export BACALHAU_API_PORT=20000
-export FOLDER=/tmp/bacalhau-onprem-demo/data
-export LOGFILE="$FOLDER/accesspoint.log"
-export HTTP_ENDPOINT=http://127.0.0.1:80/test
-cat ./onprem-demo/job.yaml | envsubst > /tmp/onprem-job.yaml
-bacalhau create /tmp/onprem-job.yaml
+source ./onprem-demo/scripts/variables.sh
+docker build -t $SOURCE_IMAGES_DOCKER_IMAGE -f Dockerfile.onprem-source-images .
+cat ./onprem-demo/onprem-demo-job-images.yaml | envsubst > /tmp/onprem-demo-job-images.yaml
+bacalhau create /tmp/onprem-demo-job-images.yaml
 ```

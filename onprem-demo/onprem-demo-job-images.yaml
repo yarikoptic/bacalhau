@@ -1,0 +1,22 @@
+Spec:
+    Engine: Docker
+    Verifier: Noop
+    Publisher: IPFS
+    Docker:
+        Image: ${SOURCE_IMAGES_DOCKER_IMAGE}
+        EnvironmentVariables:
+          - HTTP_ENDPOINT=${HTTP_ENDPOINT}
+          - ONPREM_DEMO_IMAGE_SOURCE_DIR=/input
+          - ONPREM_DEMO_IMAGE_SINK_DIR=/output
+          - HOST_PATH=${IMAGEFOLDER}
+          - RESULTS_CHANNEL=images
+    outputs:
+        - Name: output
+          path: /output
+    inputs:
+        - Name: inputs
+          path: /input
+          StorageSource: LocalDirectory
+          SourcePath: ${IMAGEFOLDER}
+Deal:
+    Concurrency: 1

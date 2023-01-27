@@ -97,6 +97,7 @@ func (f *StandardExecutorsFactory) Get(
 	return executor_util.NewStandardExecutorProvider(
 		ctx,
 		nodeConfig.CleanupManager,
+		nodeConfig.Host,
 		executor_util.StandardExecutorOptions{
 			DockerID: fmt.Sprintf("bacalhau-%s", nodeConfig.Host.ID().String()),
 			Storage: executor_util.StandardStorageProviderOptions{

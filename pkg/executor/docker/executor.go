@@ -2,13 +2,19 @@ package docker
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/filecoin-project/bacalhau/pkg/compute/capacity"
+	"github.com/filecoin-project/bacalhau/pkg/pubsub/libp2p"
+	"github.com/gorilla/mux"
+	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/pkg/errors"
 	"go.uber.org/multierr"
 
@@ -35,6 +41,8 @@ const (
 	labelJobName      = "bacalhau-jobID"
 )
 
+var GlobalStreamingResultPubSubConnection *libp2p.PubSub[model.StreamingResult]
+
 type Executor struct {
 	// used to allow multiple docker executors to run against the same docker server
 	ID string
@@ -50,6 +58,7 @@ func NewExecutor(
 	cm *system.CleanupManager,
 	id string,
 	storageProvider storage.StorageProvider,
+	host host.Host,
 ) (*Executor, error) {
 	dockerClient, err := docker.NewDockerClient()
 	if err != nil {
@@ -66,6 +75,11 @@ func NewExecutor(
 		de.cleanupAll(ctx)
 		return nil
 	})
+
+	err = de.setupStreamingServers()
+	if err != nil {
+		return nil, err
+	}
 
 	return de, nil
 }
@@ -358,6 +372,71 @@ func (e *Executor) jobContainerLabels(shard model.JobShard) map[string]string {
 
 func (e *Executor) labelJobValue(shard model.JobShard) string {
 	return e.ID + shard.ID()
+}
+
+func (e *Executor) setupStreamingGossipsub() error {
+	if GlobalStreamingResultPubSubConnection == nil {
+		return fmt.Errorf("GlobalStreamingResultPubSubConnection has not been created")
+	}
+
+	// GlobalStreamingResultPubSubConnection.Publish(ctx, model.StreamingResult{})
+	return GlobalStreamingResultPubSubConnection.Subscribe(context.Background(), e)
+}
+
+// TODO: XXX SECURITY
+// the workload is reporting the full path to a result inside the "StreamingResult" struct
+// security hole - the workload can report anything and it will end up on IPFS (yikes)
+// so we need to check BACALHAU_LOCAL_DIRECTORY_ALLOW_LIST is a prefix of the path reported
+// and then we are using the same system as the local directory storage driver to prevent
+// this problem
+func (e *Executor) streamingHttpPublishHandler(res http.ResponseWriter, req *http.Request) {
+	// read the body of the request and deserlise it's JSON into a model.StreamingResult
+	var data model.StreamingResult
+
+	// Try to decode the request body into the struct. If there is an error,
+	// respond to the client with the error message and a 400 status code.
+	err := json.NewDecoder(req.Body).Decode(&data)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+}
+
+func (e *Executor) setupStreamingHttp() error {
+	router := mux.NewRouter()
+	router.HandleFunc("/publish", e.streamingHttpPublishHandler).Methods("POST")
+
+	// TODO: dynamically find out the docker bridge IP
+	srv := &http.Server{
+		Addr:              fmt.Sprintf("%s:%d", "172.17.0.1", 9600),
+		WriteTimeout:      time.Minute * 15,
+		ReadTimeout:       time.Minute * 15,
+		ReadHeaderTimeout: time.Minute * 15,
+		IdleTimeout:       time.Minute * 60,
+		Handler:           router,
+	}
+	return srv.ListenAndServe()
+}
+
+func (e *Executor) setupStreamingServers() error {
+	if os.Getenv("BACALHAU_STREAMING_MODE") == "" {
+		return nil
+	}
+
+	err := e.setupStreamingGossipsub()
+	if err != nil {
+		return err
+	}
+
+	return e.setupStreamingHttp()
+}
+
+// these are global messages for every yielded result from a "source" job
+func (e *Executor) Handle(ctx context.Context, message model.StreamingResult) error {
+	fmt.Printf("message --------------------------------------\n")
+	spew.Dump(message)
+	return nil
 }
 
 // Compile-time interface check:

@@ -3,10 +3,12 @@ Spec:
     Verifier: Noop
     Publisher: IPFS
     Docker:
-        Image: ${SOURCE_LOGS_IMAGE}
+        Image: ${SOURCE_LOGS_DOCKER_IMAGE}
         EnvironmentVariables:
           - HTTP_ENDPOINT=${HTTP_ENDPOINT}
           - LOG_FILE=/app.log
+          - HOST_PATH=${LOGFILE}
+          - RESULTS_CHANNEL=logs
     outputs:
         - Name: outputs
           path: /outputs

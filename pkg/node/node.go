@@ -2,9 +2,11 @@ package node
 
 import (
 	"context"
+	"os"
 	"time"
 
 	"github.com/filecoin-project/bacalhau/pkg/config"
+	"github.com/filecoin-project/bacalhau/pkg/executor/docker"
 	"github.com/filecoin-project/bacalhau/pkg/ipfs"
 	"github.com/filecoin-project/bacalhau/pkg/localdb"
 	"github.com/filecoin-project/bacalhau/pkg/model"
@@ -22,6 +24,7 @@ import (
 
 const JobEventsTopic = "bacalhau-job-events"
 const NodeInfoTopic = "bacalhau-node-info"
+const StreamingResultTopic = "bacalhau-streaming-result"
 
 // Node configuration
 type NodeConfig struct {
@@ -102,28 +105,69 @@ func NewNode(
 	injector NodeDependencyInjector) (*Node, error) {
 	identify.ActivationThresh = 2
 
-	err := mergo.Merge(&config.APIServerConfig, publicapi.DefaultAPIServerConfig)
+	// A single gossipSub instance that will be used by all topics
+	gossipSubCtx, gossipSubCancel := context.WithCancel(ctx)
+	gossipSub, err := newLibp2pPubSub(gossipSubCtx, config)
 	if err != nil {
+		gossipSubCancel()
+		return nil, err
+	}
+
+	// PubSub to publish node info to the network
+	nodeInfoPubSub, err := libp2p.NewPubSub[model.NodeInfo](libp2p.PubSubParams{
+		Host:      config.Host,
+		TopicName: NodeInfoTopic,
+		PubSub:    gossipSub,
+	})
+	if err != nil {
+		gossipSubCancel()
+		return nil, err
+	}
+
+	if os.Getenv("BACALHAU_STREAMING_MODE") != "" {
+		// PubSub to publish node info to the network
+		streamingResultPubSub, err := libp2p.NewPubSub[model.StreamingResult](libp2p.PubSubParams{
+			Host:      config.Host,
+			TopicName: StreamingResultTopic,
+			PubSub:    gossipSub,
+		})
+		if err != nil {
+			gossipSubCancel()
+			return nil, err
+		}
+
+		// XXX: expedient hack to re-use and share the gossip sub instance
+		// with the docker executor that is buried down the dependency tree
+		docker.GlobalStreamingResultPubSubConnection = streamingResultPubSub
+	}
+
+	err = mergo.Merge(&config.APIServerConfig, publicapi.DefaultAPIServerConfig)
+	if err != nil {
+		gossipSubCancel()
 		return nil, err
 	}
 
 	storageProviders, err := injector.StorageProvidersFactory.Get(ctx, config)
 	if err != nil {
+		gossipSubCancel()
 		return nil, err
 	}
 
 	executors, err := injector.ExecutorsFactory.Get(ctx, config)
 	if err != nil {
+		gossipSubCancel()
 		return nil, err
 	}
 
 	verifiers, err := injector.VerifiersFactory.Get(ctx, config)
 	if err != nil {
+		gossipSubCancel()
 		return nil, err
 	}
 
 	publishers, err := injector.PublishersFactory.Get(ctx, config)
 	if err != nil {
+		gossipSubCancel()
 		return nil, err
 	}
 
@@ -139,24 +183,6 @@ func NewNode(
 		Port:    config.APIPort,
 		Host:    config.Host,
 		Config:  config.APIServerConfig,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	// A single gossipSub instance that will be used by all topics
-	gossipSubCtx, gossipSubCancel := context.WithCancel(ctx)
-	gossipSub, err := newLibp2pPubSub(gossipSubCtx, config)
-	if err != nil {
-		gossipSubCancel()
-		return nil, err
-	}
-
-	// PubSub to publish node info to the network
-	nodeInfoPubSub, err := libp2p.NewPubSub[model.NodeInfo](libp2p.PubSubParams{
-		Host:      config.Host,
-		TopicName: NodeInfoTopic,
-		PubSub:    gossipSub,
 	})
 	if err != nil {
 		gossipSubCancel()

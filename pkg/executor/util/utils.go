@@ -20,6 +20,7 @@ import (
 	noop_storage "github.com/filecoin-project/bacalhau/pkg/storage/noop"
 	"github.com/filecoin-project/bacalhau/pkg/storage/url/urldownload"
 	"github.com/filecoin-project/bacalhau/pkg/system"
+	"github.com/libp2p/go-libp2p-core/host"
 )
 
 type StandardStorageProviderOptions struct {
@@ -121,6 +122,7 @@ func NewNoopStorageProvider(
 func NewStandardExecutorProvider(
 	ctx context.Context,
 	cm *system.CleanupManager,
+	host host.Host,
 	executorOptions StandardExecutorOptions,
 ) (executor.ExecutorProvider, error) {
 	storageProvider, err := NewStandardStorageProvider(ctx, cm, executorOptions.Storage)
@@ -128,7 +130,7 @@ func NewStandardExecutorProvider(
 		return nil, err
 	}
 
-	dockerExecutor, err := docker.NewExecutor(ctx, cm, executorOptions.DockerID, storageProvider)
+	dockerExecutor, err := docker.NewExecutor(ctx, cm, executorOptions.DockerID, storageProvider, host)
 	if err != nil {
 		return nil, err
 	}
