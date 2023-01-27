@@ -1,0 +1,15 @@
+FROM golang:1.18 as build
+ENV GO111MODULE=on
+WORKDIR /app
+COPY ./go.mod .
+COPY ./go.sum .
+RUN go mod download
+COPY . .
+WORKDIR /app/onprem-demo/source_logs
+RUN CGO_ENABLED=0 go build -o onprem-demo-source_logs
+
+FROM alpine:latest as server
+WORKDIR /app
+COPY --from=build /app/onprem-demo/source_logs/onprem-demo-source_logs /app/onprem-demo-source_logs
+RUN chmod a+x /app/onprem-demo-source_logs
+ENTRYPOINT [ "/app/onprem-demo-source_logs" ]
