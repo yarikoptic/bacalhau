@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euo pipefail
+set -uo pipefail
 IFS=$'\n\t'
 export BACALHAU_API_HOST=127.0.0.1
 export BACALHAU_API_PORT=20000

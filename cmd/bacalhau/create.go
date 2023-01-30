@@ -138,12 +138,12 @@ func create(cmd *cobra.Command, cmdArgs []string, OC *CreateOptions) error { //n
 	if _, isJobWithInfo := rawMap["Job"]; isJobWithInfo {
 		err = model.YAMLUnmarshalWithMax(byteResult, &jwi)
 		if err != nil {
-			Fatal(cmd, userstrings.JobSpecBad, 1)
+			Fatal(cmd, userstrings.JobSpecBad+"\n"+err.Error(), 1)
 			return err
 		}
 		byteResult, err = model.YAMLMarshalWithMax(jwi.Job)
 		if err != nil {
-			Fatal(cmd, userstrings.JobSpecBad, 1)
+			Fatal(cmd, userstrings.JobSpecBad+"\n"+err.Error(), 1)
 			return err
 		}
 	} else if _, isTask := rawMap["with"]; isTask {
@@ -151,7 +151,7 @@ func create(cmd *cobra.Command, cmdArgs []string, OC *CreateOptions) error { //n
 		var task *model.Task
 		task, taskErr := model.UnmarshalIPLD[model.Task](byteResult, json.Decode, model.UCANTaskSchema)
 		if taskErr != nil {
-			Fatal(cmd, userstrings.JobSpecBad, 1)
+			Fatal(cmd, userstrings.JobSpecBad+"\n"+err.Error(), 1)
 			return taskErr
 		}
 
@@ -162,14 +162,14 @@ func create(cmd *cobra.Command, cmdArgs []string, OC *CreateOptions) error { //n
 
 		spec, taskErr := task.ToSpec()
 		if taskErr != nil {
-			Fatal(cmd, userstrings.JobSpecBad, 1)
+			Fatal(cmd, userstrings.JobSpecBad+"\n"+err.Error(), 1)
 			return taskErr
 		}
 
 		job.Spec = *spec
 		byteResult, taskErr = model.YAMLMarshalWithMax(job)
 		if taskErr != nil {
-			Fatal(cmd, userstrings.JobSpecBad, 1)
+			Fatal(cmd, userstrings.JobSpecBad+"\n"+err.Error(), 1)
 			return taskErr
 		}
 	}
@@ -183,7 +183,7 @@ func create(cmd *cobra.Command, cmdArgs []string, OC *CreateOptions) error { //n
 	// so we can just use that
 	err = model.YAMLUnmarshalWithMax(byteResult, &j)
 	if err != nil {
-		Fatal(cmd, userstrings.JobSpecBad, 1)
+		Fatal(cmd, userstrings.JobSpecBad+"\n"+err.Error(), 1)
 		return err
 	}
 

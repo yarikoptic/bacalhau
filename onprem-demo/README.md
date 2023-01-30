@@ -31,8 +31,8 @@ In another terminal - we need to setup the webcam so it puts images into a speci
 source ./onprem-demo/scripts/variables.sh
 mkdir -p $IMAGEFOLDER
 while true; do
-  streamer -c /dev/video0 -b 16 -o $IMAGEFOLDER/cam01-$(date +%s).jpeg;
-  sleep 1;
+  streamer -s 1920x1080 -c /dev/video0 -b 16 -o $IMAGEFOLDER/cam01-$(date +%s).jpeg
+  sleep 1
 done
 ```
 
