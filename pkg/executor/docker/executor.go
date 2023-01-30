@@ -437,6 +437,7 @@ func (e *Executor) setupStreamingServers() error {
 			log.Printf("error during setupStreamingHttp(): %s", err)
 		}
 	}()
+	return nil
 }
 
 // these are global messages for every yielded result from a "source" job
