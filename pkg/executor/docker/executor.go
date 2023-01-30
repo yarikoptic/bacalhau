@@ -424,12 +424,19 @@ func (e *Executor) setupStreamingServers() error {
 		return nil
 	}
 
-	err := e.setupStreamingGossipsub()
-	if err != nil {
-		return err
-	}
+	go func() {
+		err := e.setupStreamingGossipsub()
+		if err != nil {
+			log.Printf("error during setupStreamingGossipsub(): %s", err)
+		}
+	}()
 
-	return e.setupStreamingHttp()
+	go func() {
+		err := e.setupStreamingHttp()
+		if err != nil {
+			log.Printf("error during setupStreamingHttp(): %s", err)
+		}
+	}()
 }
 
 // these are global messages for every yielded result from a "source" job
