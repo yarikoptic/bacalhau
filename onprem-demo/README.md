@@ -66,3 +66,5 @@ docker build -t $SOURCE_IMAGES_DOCKER_IMAGE -f Dockerfile.onprem-source-images .
 cat ./onprem-demo/onprem-demo-job-images.yaml | envsubst > /tmp/onprem-demo-job-images.yaml
 bacalhau create /tmp/onprem-demo-job-images.yaml
 ```
+
+Next: have workload call docker executor's streaming http server
