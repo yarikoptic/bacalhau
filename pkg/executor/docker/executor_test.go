@@ -29,11 +29,15 @@ package docker
 // 		storage.NewMappedStorageProvider(map[model.StorageSourceType]storage.Storage{}),
 // 	)
 // 	require.NoError(s.T(), err)
-
-// 	handler := func(w http.ResponseWriter, r *http.Request) {
-// 		w.Write([]byte(r.URL.Path))
-// 	}
-
+//
+//	s.executor, err = NewExecutor(
+//		context.Background(),
+//		s.cm,
+//		"bacalhau-executor-unittest",
+//		model.NewMappedProvider(map[model.StorageSourceType]storage.Storage{}),
+//	)
+//	require.NoError(s.T(), err)
+//
 // 	// We have to manually discover the correct IP address for the server to
 // 	// listen on because on Linux hosts simply using 127.0.0.1 will get caught
 // 	// in the loopback interface of the gateway container. We have to listen on
@@ -230,25 +234,39 @@ package docker
 // 	require.NotZero(s.T(), result.ExitCode)
 // 	require.Contains(s.T(), result.STDOUT, "ERROR: The requested URL could not be retrieved")
 // }
-
-// func (s *ExecutorTestSuite) TestDockerNetworkingFiltersHTTPS() {
-// 	result, err := s.runJob(model.Spec{
-// 		Engine: model.EngineDocker,
-// 		Network: model.NetworkConfig{
-// 			Type:    model.NetworkHTTP,
-// 			Domains: []string{s.containerHttpURL().Hostname()},
-// 		},
-// 		Docker: model.JobSpecDocker{
-// 			Image:      "curlimages/curl",
-// 			Entrypoint: []string{"curl", "--fail-with-body", "https://www.bacalhau.org"},
-// 		},
-// 	})
-// 	// The curl will succeed but should return a non-zero exit code and error page.
-// 	require.NoError(s.T(), err)
-// 	require.NotZero(s.T(), result.ExitCode)
-// 	require.Empty(s.T(), result.STDOUT)
-// }
-
+//
+//func (s *ExecutorTestSuite) TestDockerNetworkingWithSubdomains() {
+//	hostname := s.containerHttpURL().Hostname()
+//	hostroot := strings.Join(strings.SplitN(hostname, ".", 2)[:1], ".")
+//
+//	result, err := s.runJob(model.Spec{
+//		Engine: model.EngineDocker,
+//		Network: model.NetworkConfig{
+//			Type:    model.NetworkHTTP,
+//			Domains: []string{hostname, hostroot},
+//		},
+//		Docker: s.curlTask(),
+//	})
+//	require.NoError(s.T(), err, result.STDERR)
+//	require.Zero(s.T(), result.ExitCode, result.STDERR)
+//	require.Equal(s.T(), "/hello.txt", result.STDOUT)
+//}
+//
+//func (s *ExecutorTestSuite) TestDockerNetworkingFiltersHTTP() {
+//	result, err := s.runJob(model.Spec{
+//		Engine: model.EngineDocker,
+//		Network: model.NetworkConfig{
+//			Type:    model.NetworkHTTP,
+//			Domains: []string{"bacalhau.org"},
+//		},
+//		Docker: s.curlTask(),
+//	})
+//	// The curl will succeed but should return a non-zero exit code and error page.
+//	require.NoError(s.T(), err)
+//	require.NotZero(s.T(), result.ExitCode)
+//	require.Contains(s.T(), result.STDOUT, "ERROR: The requested URL could not be retrieved")
+//}
+//
 // func (s *ExecutorTestSuite) TestDockerNetworkingAppendsHTTPHeader() {
 // 	s.server.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 // 		_, err := w.Write([]byte(r.Header.Get("X-Bacalhau-Job-ID")))

@@ -2,6 +2,7 @@ package node
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"time"
 
@@ -12,12 +13,17 @@ import (
 	"github.com/filecoin-project/bacalhau/pkg/model"
 	"github.com/filecoin-project/bacalhau/pkg/publicapi"
 	filecoinlotus "github.com/filecoin-project/bacalhau/pkg/publisher/filecoin_lotus"
+	"github.com/filecoin-project/bacalhau/pkg/pubsub"
 	"github.com/filecoin-project/bacalhau/pkg/pubsub/libp2p"
+	"github.com/filecoin-project/bacalhau/pkg/routing"
+	"github.com/filecoin-project/bacalhau/pkg/routing/inmemory"
 	"github.com/filecoin-project/bacalhau/pkg/simulator"
 	"github.com/filecoin-project/bacalhau/pkg/system"
 	"github.com/imdario/mergo"
 	libp2p_pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
+	basichost "github.com/libp2p/go-libp2p/p2p/host/basic"
+	routedhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	"github.com/libp2p/go-libp2p/p2p/protocol/identify"
 	"github.com/rs/zerolog/log"
 )
@@ -25,26 +31,28 @@ import (
 const JobEventsTopic = "bacalhau-job-events"
 const NodeInfoTopic = "bacalhau-node-info"
 const StreamingResultTopic = "bacalhau-streaming-result"
+const DefaultNodeInfoPublisherInterval = 30 * time.Second
 
 // Node configuration
 type NodeConfig struct {
-	IPFSClient           ipfs.Client
-	CleanupManager       *system.CleanupManager
-	LocalDB              localdb.LocalDB
-	Host                 host.Host
-	FilecoinUnsealedPath string
-	EstuaryAPIKey        string
-	HostAddress          string
-	APIPort              int
-	MetricsPort          int
-	ComputeConfig        ComputeConfig
-	RequesterNodeConfig  RequesterConfig
-	APIServerConfig      publicapi.APIServerConfig
-	LotusConfig          *filecoinlotus.PublisherConfig
-	SimulatorNodeID      string
-	IsRequesterNode      bool
-	IsComputeNode        bool
-	Labels               map[string]string
+	IPFSClient                ipfs.Client
+	CleanupManager            *system.CleanupManager
+	LocalDB                   localdb.LocalDB
+	Host                      host.Host
+	FilecoinUnsealedPath      string
+	EstuaryAPIKey             string
+	HostAddress               string
+	APIPort                   int
+	MetricsPort               int
+	ComputeConfig             ComputeConfig
+	RequesterNodeConfig       RequesterConfig
+	APIServerConfig           publicapi.APIServerConfig
+	LotusConfig               *filecoinlotus.PublisherConfig
+	SimulatorNodeID           string
+	IsRequesterNode           bool
+	IsComputeNode             bool
+	Labels                    map[string]string
+	NodeInfoPublisherInterval time.Duration
 }
 
 // Lazy node dependency injector that generate instances of different
@@ -177,12 +185,51 @@ func NewNode(
 		simulatorRequestHandler = simulator.NewRequestHandler()
 	}
 
+	// node info provider
+	basicHost, ok := config.Host.(*basichost.BasicHost)
+	if !ok {
+		gossipSubCancel()
+		return nil, fmt.Errorf("host is not a basic host")
+	}
+	nodeInfoProvider := routing.NewNodeInfoProvider(routing.NodeInfoProviderParams{
+		Host:            basicHost,
+		IdentityService: basicHost.IDService(),
+		Labels:          config.Labels,
+	})
+
+	// node info publisher
+	nodeInfoPublisherInterval := config.NodeInfoPublisherInterval
+	if nodeInfoPublisherInterval == 0 {
+		nodeInfoPublisherInterval = DefaultNodeInfoPublisherInterval
+	}
+	nodeInfoPublisher := routing.NewNodeInfoPublisher(routing.NodeInfoPublisherParams{
+		PubSub:           nodeInfoPubSub,
+		NodeInfoProvider: nodeInfoProvider,
+		Interval:         nodeInfoPublisherInterval,
+	})
+
+	// node info store that is used for both discovering compute nodes, as to find addresses of other nodes for routing requests.
+	nodeInfoStore := inmemory.NewNodeInfoStore(inmemory.NodeInfoStoreParams{
+		TTL: 10 * time.Minute,
+	})
+	routedHost := routedhost.Wrap(config.Host, nodeInfoStore)
+
+	// register consumers of node info published over gossipSub
+	nodeInfoSubscriber := pubsub.NewChainedSubscriber[model.NodeInfo](true)
+	nodeInfoSubscriber.Add(pubsub.SubscriberFunc[model.NodeInfo](nodeInfoStore.Add))
+	err = nodeInfoPubSub.Subscribe(ctx, nodeInfoSubscriber)
+	if err != nil {
+		gossipSubCancel()
+		return nil, err
+	}
+
 	// public http api server
 	apiServer, err := publicapi.NewAPIServer(publicapi.APIServerParams{
-		Address: config.HostAddress,
-		Port:    config.APIPort,
-		Host:    config.Host,
-		Config:  config.APIServerConfig,
+		Address:          config.HostAddress,
+		Port:             config.APIPort,
+		Host:             config.Host,
+		Config:           config.APIServerConfig,
+		NodeInfoProvider: nodeInfoProvider,
 	})
 	if err != nil {
 		gossipSubCancel()
@@ -197,7 +244,7 @@ func NewNode(
 		requesterNode, err = NewRequesterNode(
 			ctx,
 			config.CleanupManager,
-			config.Host,
+			routedHost,
 			apiServer,
 			config.RequesterNodeConfig,
 			config.LocalDB,
@@ -205,13 +252,15 @@ func NewNode(
 			simulatorRequestHandler,
 			verifiers,
 			storageProviders,
-			nodeInfoPubSub,
 			gossipSub,
+			nodeInfoStore,
 		)
 		if err != nil {
 			gossipSubCancel()
 			return nil, err
 		}
+		// subscribe additional consumers of node info published over gossipSub
+		nodeInfoSubscriber.Add(pubsub.SubscriberFunc[model.NodeInfo](requesterNode.requesterAPIServer.PushNodeInfoToWebsocket))
 	}
 
 	if config.IsComputeNode {
@@ -219,8 +268,7 @@ func NewNode(
 		computeNode, err = NewComputeNode(
 			ctx,
 			config.CleanupManager,
-			config.Host,
-			config.Labels,
+			routedHost,
 			apiServer,
 			config.ComputeConfig,
 			config.SimulatorNodeID,
@@ -229,12 +277,12 @@ func NewNode(
 			executors,
 			verifiers,
 			publishers,
-			nodeInfoPubSub,
 		)
 		if err != nil {
 			gossipSubCancel()
 			return nil, err
 		}
+		nodeInfoProvider.RegisterComputeInfoProvider(computeNode.computeInfoProvider)
 	}
 
 	// cleanup libp2p resources in the desired order
@@ -246,6 +294,7 @@ func NewNode(
 		if requesterNode != nil {
 			requesterNode.cleanup(cleanupCtx)
 		}
+		nodeInfoPublisher.Stop()
 		cleanupErr := nodeInfoPubSub.Close(cleanupCtx)
 		if cleanupErr != nil {
 			log.Error().Err(cleanupErr).Msg("failed to close libp2p node info pubsub")
@@ -265,13 +314,19 @@ func NewNode(
 		requesterNode.RegisterLocalComputeEndpoint(computeNode.LocalEndpoint)
 	}
 
+	// eagerly publish node info to the network
+	err = nodeInfoPublisher.Publish(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	node := &Node{
 		CleanupManager: config.CleanupManager,
 		APIServer:      apiServer,
 		IPFSClient:     config.IPFSClient,
 		ComputeNode:    computeNode,
 		RequesterNode:  requesterNode,
-		Host:           config.Host,
+		Host:           routedHost,
 		metricsPort:    config.MetricsPort,
 	}
 
