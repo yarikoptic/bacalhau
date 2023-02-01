@@ -151,7 +151,14 @@ func (dockerIPFS *StorageProvider) Handle(ctx context.Context, message model.CID
 	if !ok {
 		return fmt.Errorf("Streaming CID storage driver could not find a local folder for channel %s, have %+v", message.Channel, dockerIPFS.ChannelToFolderMap)
 	}
-	return dockerIPFS.IPFSClient.Get(ctx, message.CID, path.Join(localFolderPath, message.CID))
+	pth := path.Join(localFolderPath, message.CID)
+	// check if pth exists
+	_, err := os.Stat(pth)
+	if err == nil {
+		// assume that if cid has already been downloaded then it has fully been downloaded :shrug:
+		return nil
+	}
+	return dockerIPFS.IPFSClient.Get(ctx, message.CID, pth)
 }
 
 func (dockerIPFS *StorageProvider) getFileFromIPFS(ctx context.Context, storageSpec model.StorageSpec) (storage.StorageVolume, error) {

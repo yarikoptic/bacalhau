@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -51,6 +52,17 @@ func processInference(latestImageCid string) {
 }
 
 func processAPJoin(filename string) {
+
+	log.Printf("processAPJoin called with %s", filename)
+	// read filename into string
+	f, _ := os.Open(filename + "/output.txt")
+	bs, _ := ioutil.ReadAll(f)
+
+	postToSlack(fmt.Sprintf(
+		"ACCESS POINT CONNECTION DETECTED: %s",
+		string(bs),
+	))
+
 	if latestImageCid == "" {
 		// no image yet
 		return

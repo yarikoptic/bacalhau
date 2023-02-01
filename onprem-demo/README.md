@@ -93,3 +93,5 @@ on levity:
 ```
 docker run -v /tmp/onprem-demo/public:/usr/share/nginx/html -d -p 9009:80 nginx
 ```
+
+restart nginx when you restart everything
