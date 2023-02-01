@@ -21,6 +21,7 @@ const (
 	StorageSourceEstuary
 	StorageSourceInline
 	StorageSourceLocalDirectory
+	StorageSourceCIDStream
 	storageSourceDone // must be last
 )
 

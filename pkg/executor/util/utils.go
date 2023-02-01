@@ -18,6 +18,7 @@ import (
 	apicopy "github.com/filecoin-project/bacalhau/pkg/storage/ipfs_apicopy"
 	local_directory "github.com/filecoin-project/bacalhau/pkg/storage/local_directory"
 	noop_storage "github.com/filecoin-project/bacalhau/pkg/storage/noop"
+	streamingcid "github.com/filecoin-project/bacalhau/pkg/storage/streaming_cid"
 	"github.com/filecoin-project/bacalhau/pkg/storage/url/urldownload"
 	"github.com/filecoin-project/bacalhau/pkg/system"
 	"github.com/libp2p/go-libp2p-core/host"
@@ -56,6 +57,11 @@ func NewStandardStorageProvider(
 	}
 
 	localDirectoryStorage, err := local_directory.NewStorage(cm)
+	if err != nil {
+		return nil, err
+	}
+
+	streamingCIDStorage, err := streamingcid.NewStorage(cm, options.API)
 	if err != nil {
 		return nil, err
 	}
@@ -105,6 +111,7 @@ func NewStandardStorageProvider(
 		model.StorageSourceFilecoinUnsealed: filecoinUnsealedStorage,
 		model.StorageSourceInline:           inlineStorage,
 		model.StorageSourceLocalDirectory:   localDirectoryStorage,
+		model.StorageSourceStreamingCID:     streamingCIDStorage,
 	}), nil
 }
 
