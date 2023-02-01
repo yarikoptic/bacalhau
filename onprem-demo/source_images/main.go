@@ -96,7 +96,7 @@ func main() {
 	if imageSourceDir == "" {
 		msg := "Please specify ONPREM_DEMO_IMAGE_SOURCE_DIR as an absolute path to where " +
 			"your webcam image software is writing jpeg files, e.g. \n\n\t" +
-			"while true; do streamer -c /dev/video0 -b 16 -o /path/to/cam01-$(date +%s).jpeg; sleep 1; done\n"
+			"while true; do streamer -s 1920x1080 -c /dev/video0 -b 16 -o $IMAGEFOLDER/image.jpeg; sleep 1; rm IMAGEFOLDER/image.jpg; done\n"
 		fmt.Println(msg)
 		os.Exit(1)
 	}
