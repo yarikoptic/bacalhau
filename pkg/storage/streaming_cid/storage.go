@@ -32,9 +32,16 @@ var TheOnlyStreamingCidStorageProvider *StorageProvider
 
 func NewStorage(cm *system.CleanupManager, cl ipfs.Client) (*StorageProvider, error) {
 	if TheOnlyStreamingCidStorageProvider == nil {
-		dir, err := os.MkdirTemp(config.GetStoragePath(), "bacalhau-streaming-cid")
+		dir := "/tmp/onprem-streams"
+
+		// check if dir exists
+		_, err := os.Stat(dir)
 		if err != nil {
-			return nil, err
+			// create dir
+			err = os.MkdirAll(dir, 0777)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		cm.RegisterCallback(func() error {

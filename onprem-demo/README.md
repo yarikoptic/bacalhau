@@ -79,3 +79,17 @@ bacalhau create /tmp/onprem-demo-job-inference-server.yaml
 ```
 
 Next: have workload call docker executor's streaming http server
+
+## hack luke's router
+
+```
+add action=dst-nat chain=dstnat comment=onpremdemo dst-address=212.82.90.194 \
+    dst-port=9009 protocol=tcp to-addresses=10.1.254.161 to-ports=9009
+add action=masquerade chain=srcnat dst-address=10.1.254.161 dst-port=9009 \
+    out-interface-list=LAN protocol=tcp src-address=10.0.0.0/15
+```
+
+on levity:
+```
+docker run -v /tmp/onprem-demo/public:/usr/share/nginx/html -d -p 9009:80 nginx
+```

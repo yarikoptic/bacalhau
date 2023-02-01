@@ -60,6 +60,16 @@ func processAPJoin(filename string) {
 }
 
 func processImage(filename string) {
+
+	// like /tmp/bacalhau-streaming-cid2357033235/webcam-01/QmcPYjD8R6nmY3pmDDeAPcBNeBRsFjortYsH4sGNaUz7ov/image.jpeg
+
+	shrapnel := strings.Split(filename, "/")
+	cid := shrapnel[len(shrapnel)-2]
+
+	postToSlack(fmt.Sprintf(
+		"received an image: http://212.82.90.194:9009/%s/image.jpeg", cid,
+	))
+
 	latestImageCid = filename
 }
 
