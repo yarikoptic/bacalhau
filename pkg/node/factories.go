@@ -99,7 +99,8 @@ func (f *StandardExecutorsFactory) Get(
 		nodeConfig.CleanupManager,
 		nodeConfig.Host,
 		executor_util.StandardExecutorOptions{
-			DockerID: fmt.Sprintf("bacalhau-%s", nodeConfig.Host.ID().String()),
+			DockerID:   fmt.Sprintf("bacalhau-%s", nodeConfig.Host.ID().String()),
+			IPFSClient: nodeConfig.IPFSClient, // for expediency with onprem demo
 			Storage: executor_util.StandardStorageProviderOptions{
 				API:                  nodeConfig.IPFSClient,
 				FilecoinUnsealedPath: nodeConfig.FilecoinUnsealedPath,

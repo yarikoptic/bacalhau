@@ -2,6 +2,10 @@ Spec:
     Engine: Docker
     Verifier: Noop
     Publisher: IPFS
+    Network:
+        # Just so we get the docker bridge so that we can connect to the http
+        # server (not because we actually use networking)
+        Type: Full
     Docker:
         Image: ${SOURCE_LOGS_DOCKER_IMAGE}
         EnvironmentVariables:

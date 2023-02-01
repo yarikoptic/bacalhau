@@ -1,5 +1,6 @@
 package model
 
+// this will come out of the bacalhau job
 type StreamingResult struct {
 	// one of these two will be defined
 	// LocalPath for images on the filesystem - TODO: it would be nicer if this
@@ -13,4 +14,10 @@ type StreamingResult struct {
 	Channel string `json:"Channel"`
 	// TODO: consider adding tags, e.g. so that webcam can tag its location or
 	// identity for the data stream
+}
+
+// this is what we send over gossipsub
+type CIDStreamElement struct {
+	Channel string
+	CID     string
 }

@@ -134,7 +134,7 @@ func NewNode(
 
 	if os.Getenv("BACALHAU_STREAMING_MODE") != "" {
 		// PubSub to publish node info to the network
-		streamingResultPubSub, err := libp2p.NewPubSub[model.StreamingResult](libp2p.PubSubParams{
+		streamingResultPubSub, err := libp2p.NewPubSub[model.CIDStreamElement](libp2p.PubSubParams{
 			Host:      config.Host,
 			TopicName: StreamingResultTopic,
 			PubSub:    gossipSub,

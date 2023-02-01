@@ -30,8 +30,9 @@ type StandardStorageProviderOptions struct {
 }
 
 type StandardExecutorOptions struct {
-	DockerID string
-	Storage  StandardStorageProviderOptions
+	DockerID   string
+	Storage    StandardStorageProviderOptions
+	IPFSClient ipfs.Client
 }
 
 func NewStandardStorageProvider(
@@ -130,7 +131,14 @@ func NewStandardExecutorProvider(
 		return nil, err
 	}
 
-	dockerExecutor, err := docker.NewExecutor(ctx, cm, executorOptions.DockerID, storageProvider, host)
+	dockerExecutor, err := docker.NewExecutor(
+		ctx,
+		cm,
+		executorOptions.DockerID,
+		storageProvider,
+		host,
+		executorOptions.IPFSClient,
+	)
 	if err != nil {
 		return nil, err
 	}

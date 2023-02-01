@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -12,6 +13,8 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/filecoin-project/bacalhau/pkg/compute/capacity"
+	"github.com/filecoin-project/bacalhau/pkg/ipfs"
+	ipfspublisher "github.com/filecoin-project/bacalhau/pkg/publisher/ipfs"
 	"github.com/filecoin-project/bacalhau/pkg/pubsub/libp2p"
 	"github.com/gorilla/mux"
 	"github.com/libp2p/go-libp2p-core/host"
@@ -41,7 +44,7 @@ const (
 	labelJobName      = "bacalhau-jobID"
 )
 
-var GlobalStreamingResultPubSubConnection *libp2p.PubSub[model.StreamingResult]
+var GlobalStreamingResultPubSubConnection *libp2p.PubSub[model.CIDStreamElement]
 
 type Executor struct {
 	// used to allow multiple docker executors to run against the same docker server
@@ -51,6 +54,10 @@ type Executor struct {
 	StorageProvider storage.StorageProvider
 
 	Client *dockerclient.Client
+
+	// for onprem demo streaming publishing
+	IPFSClient    ipfs.Client
+	IPFSPublisher *ipfspublisher.IPFSPublisher
 }
 
 func NewExecutor(
@@ -59,6 +66,7 @@ func NewExecutor(
 	id string,
 	storageProvider storage.StorageProvider,
 	host host.Host,
+	ipfsClient ipfs.Client,
 ) (*Executor, error) {
 	dockerClient, err := docker.NewDockerClient()
 	if err != nil {
@@ -69,6 +77,7 @@ func NewExecutor(
 		ID:              id,
 		StorageProvider: storageProvider,
 		Client:          dockerClient,
+		IPFSClient:      ipfsClient,
 	}
 
 	cm.RegisterCallback(func() error {
@@ -401,6 +410,55 @@ func (e *Executor) streamingHttpPublishHandler(res http.ResponseWriter, req *htt
 		return
 	}
 
+	log.Printf("GOT STREAM PUBLISH")
+	spew.Dump(data)
+
+	// if data.InlineData is not empty, write to a tmp file
+
+	if data.InlineData != "" {
+		// create a tmp file
+		tmpdir, err := ioutil.TempDir("", "streaming-result-")
+		if err != nil {
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		// open output.txt in tmpdir
+		tmpfile, err := os.Create(filepath.Join(tmpdir, "output.txt"))
+		if err != nil {
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		tmpfile.Write([]byte(data.InlineData))
+		tmpfile.Close()
+		data.LocalPath = tmpdir
+	}
+
+	if data.LocalPath == "" {
+		http.Error(res, "no data provided", http.StatusBadRequest)
+		return
+	}
+	// now in all cases we can use data.LocalPath
+
+	// XXX SECURITY OH NO
+	log.Printf("STARTING IPFS PUT")
+	cid, err := e.IPFSClient.Put(context.Background(), data.LocalPath)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	log.Printf("FINISHED IPFS PUT")
+
+	// write cid to CIDStream
+	elem := model.CIDStreamElement{
+		CID:     cid,
+		Channel: data.Channel,
+	}
+	log.Printf("element: %s", elem)
+
+	log.Printf("STARTING GOSSIP PUBLISH")
+	GlobalStreamingResultPubSubConnection.Publish(context.Background(), elem)
+	log.Printf("FINISH GOSSIP PUBLISH")
+
 }
 
 func (e *Executor) setupStreamingHttp() error {
@@ -441,7 +499,7 @@ func (e *Executor) setupStreamingServers() error {
 }
 
 // these are global messages for every yielded result from a "source" job
-func (e *Executor) Handle(ctx context.Context, message model.StreamingResult) error {
+func (e *Executor) Handle(ctx context.Context, message model.CIDStreamElement) error {
 	fmt.Printf("message --------------------------------------\n")
 	spew.Dump(message)
 	return nil
