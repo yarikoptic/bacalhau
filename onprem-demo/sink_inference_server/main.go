@@ -64,7 +64,7 @@ func processImage(filename string) {
 	// like /tmp/bacalhau-streaming-cid2357033235/webcam-01/QmcPYjD8R6nmY3pmDDeAPcBNeBRsFjortYsH4sGNaUz7ov/image.jpeg
 
 	shrapnel := strings.Split(filename, "/")
-	cid := shrapnel[len(shrapnel)-2]
+	cid := shrapnel[len(shrapnel)-1]
 
 	postToSlack(fmt.Sprintf(
 		"received an image: http://212.82.90.194:9009/%s/image.jpeg", cid,
@@ -81,7 +81,7 @@ func main() {
 	}
 	defer watcher.Close()
 
-	postToSlack("hello, cruel world")
+	postToSlack("🤖 On-prem demo booted 🤖")
 
 	// Start listening for events.
 	go func() {
@@ -92,7 +92,9 @@ func main() {
 					return
 				}
 				log.Println("event:", event)
-				if event.Has(fsnotify.Write) {
+				if event.Has(fsnotify.Create) {
+
+					// directory creation trigger
 
 					// cids are gonna show up in /ap_connections/:cid or /webcam_images/:cid
 
