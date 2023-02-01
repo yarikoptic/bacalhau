@@ -1,0 +1,23 @@
+Spec:
+    Engine: Docker
+    Verifier: Noop
+    Publisher: IPFS
+    Network:
+        # So we can send slack notifications
+        Type: Full
+    Docker:
+        Image: ${INFERENCE_SERVER_IMAGE}
+        EnvironmentVariables:
+          - HTTP_ENDPOINT=${HTTP_ENDPOINT}
+    inputs:
+        - Name: webcam_images
+          path: /webcam_images
+          StorageSource: CIDStream
+          Channel: webcam_images
+
+        - Name: ap_connections
+          path: /ap_connections
+          StorageSource: CIDStream
+          Channel: ap_connections
+Deal:
+    Concurrency: 1
