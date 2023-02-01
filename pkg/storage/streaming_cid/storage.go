@@ -18,37 +18,49 @@ import (
 )
 
 type StorageProvider struct {
-	LocalDir           string
-	IPFSClient         ipfs.Client
+	LocalDir   string
+	IPFSClient ipfs.Client
+	// XXX should be list of folders per channel so we can have multiple listeners
+	// per channel per node. Also, cleanup obvs
 	ChannelToFolderMap map[string]string
+	// TODO mutex
 }
 
+// XXX why do we get instantiated multiples times motherfucker?
+
+var TheOnlyStreamingCidStorageProvider *StorageProvider
+
 func NewStorage(cm *system.CleanupManager, cl ipfs.Client) (*StorageProvider, error) {
-	dir, err := os.MkdirTemp(config.GetStoragePath(), "bacalhau-streaming-cid")
-	if err != nil {
-		return nil, err
-	}
-
-	cm.RegisterCallback(func() error {
-		if err := os.RemoveAll(dir); err != nil {
-			return fmt.Errorf("unable to clean up IPFS storage directory: %w", err)
+	if TheOnlyStreamingCidStorageProvider == nil {
+		dir, err := os.MkdirTemp(config.GetStoragePath(), "bacalhau-streaming-cid")
+		if err != nil {
+			return nil, err
 		}
-		return nil
-	})
 
-	storageHandler := &StorageProvider{
-		IPFSClient:         cl,
-		LocalDir:           dir,
-		ChannelToFolderMap: map[string]string{},
+		cm.RegisterCallback(func() error {
+			if err := os.RemoveAll(dir); err != nil {
+				return fmt.Errorf("unable to clean up IPFS storage directory: %w", err)
+			}
+			return nil
+		})
+
+		storageHandler := &StorageProvider{
+			IPFSClient:         cl,
+			LocalDir:           dir,
+			ChannelToFolderMap: map[string]string{},
+		}
+
+		err = storageHandler.setupStreamingGossipsub()
+		if err != nil {
+			return nil, err
+		}
+
+		log.Trace().Msgf("Streaming CID driver created with address: %s", cl.APIAddress())
+		TheOnlyStreamingCidStorageProvider = storageHandler
+		return storageHandler, nil
+	} else {
+		return TheOnlyStreamingCidStorageProvider, nil
 	}
-
-	err = storageHandler.setupStreamingGossipsub()
-	if err != nil {
-		return nil, err
-	}
-
-	log.Trace().Msgf("Streaming CID driver created with address: %s", cl.APIAddress())
-	return storageHandler, nil
 }
 
 func (dockerIPFS *StorageProvider) IsInstalled(ctx context.Context) (bool, error) {
@@ -81,6 +93,7 @@ func (dockerIPFS *StorageProvider) PrepareStorage(ctx context.Context, storageSp
 		return storage.StorageVolume{}, err
 	}
 
+	log.Printf(">>>>>>>>> Adding to channelToFolderMap[%s] = %s", storageSpec.Channel, channelLocalFolder)
 	dockerIPFS.ChannelToFolderMap[storageSpec.Channel] = channelLocalFolder
 
 	return storage.StorageVolume{
@@ -103,13 +116,20 @@ func (dockerIPFS *StorageProvider) Explode(ctx context.Context, spec model.Stora
 	return []model.StorageSpec{}, nil
 }
 
+var DID_SUBSCRIBE bool
+
 func (dockerIPFS *StorageProvider) setupStreamingGossipsub() error {
 	if docker.GlobalStreamingResultPubSubConnection == nil {
 		return fmt.Errorf("GlobalStreamingResultPubSubConnection has not been created")
 	}
 
+	if DID_SUBSCRIBE {
+		return nil
+	}
 	// GlobalStreamingResultPubSubConnection.Publish(ctx, model.StreamingResult{})
-	return docker.GlobalStreamingResultPubSubConnection.Subscribe(context.Background(), dockerIPFS)
+	err := docker.GlobalStreamingResultPubSubConnection.Subscribe(context.Background(), dockerIPFS)
+	DID_SUBSCRIBE = true
+	return err
 }
 
 func (dockerIPFS *StorageProvider) Handle(ctx context.Context, message model.CIDStreamElement) error {
@@ -117,7 +137,7 @@ func (dockerIPFS *StorageProvider) Handle(ctx context.Context, message model.CID
 	spew.Dump(message)
 	localFolderPath, ok := dockerIPFS.ChannelToFolderMap[message.Channel]
 	if !ok {
-		return fmt.Errorf("Streaming CID storage driver could not find a local folder for channel %s", message.Channel)
+		return fmt.Errorf("Streaming CID storage driver could not find a local folder for channel %s, have %+v", message.Channel, dockerIPFS.ChannelToFolderMap)
 	}
 	return dockerIPFS.IPFSClient.Get(ctx, message.CID, path.Join(localFolderPath, message.CID))
 }

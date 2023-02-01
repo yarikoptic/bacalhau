@@ -111,7 +111,7 @@ func NewStandardStorageProvider(
 		model.StorageSourceFilecoinUnsealed: filecoinUnsealedStorage,
 		model.StorageSourceInline:           inlineStorage,
 		model.StorageSourceLocalDirectory:   localDirectoryStorage,
-		model.StorageSourceStreamingCID:     streamingCIDStorage,
+		model.StorageSourceCIDStream:        streamingCIDStorage,
 	}), nil
 }
 

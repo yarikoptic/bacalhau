@@ -389,7 +389,8 @@ func (e *Executor) setupStreamingGossipsub() error {
 	}
 
 	// GlobalStreamingResultPubSubConnection.Publish(ctx, model.StreamingResult{})
-	return GlobalStreamingResultPubSubConnection.Subscribe(context.Background(), e)
+	// return GlobalStreamingResultPubSubConnection.Subscribe(context.Background(), e)
+	return nil
 }
 
 // TODO: XXX SECURITY

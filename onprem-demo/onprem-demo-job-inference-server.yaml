@@ -6,14 +6,15 @@ Spec:
         # So we can send slack notifications
         Type: Full
     Docker:
-        Image: ${INFERENCE_SERVER_IMAGE}
+        Image: ${SINK_INFERENCE_SERVER_DOCKER_IMAGE}
+        # Entrypoint: ["tail", "-f", "/dev/null"]
         EnvironmentVariables:
-          - HTTP_ENDPOINT=${HTTP_ENDPOINT}
+          - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
     inputs:
         - Name: webcam_images
           path: /webcam_images
           StorageSource: CIDStream
-          Channel: webcam_images
+          Channel: webcam-01
 
         - Name: ap_connections
           path: /ap_connections

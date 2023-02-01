@@ -68,3 +68,14 @@ bacalhau create /tmp/onprem-demo-job-images.yaml
 ```
 
 Next: have workload call docker executor's streaming http server
+
+#### inference server job
+
+```bash
+source ./onprem-demo/scripts/variables.sh
+docker build -t $SINK_INFERENCE_SERVER_DOCKER_IMAGE -f Dockerfile.onprem-sink-inference-server .
+cat ./onprem-demo/onprem-demo-job-inference-server.yaml | envsubst > /tmp/onprem-demo-job-inference-server.yaml
+bacalhau create /tmp/onprem-demo-job-inference-server.yaml
+```
+
+Next: have workload call docker executor's streaming http server

@@ -10,6 +10,7 @@ export IMAGEFOLDER="$DATAFOLDER/images"
 export HTTP_ENDPOINT=http://172.17.0.1:9600/publish
 export SOURCE_LOGS_DOCKER_IMAGE=bacalhau-onprem-demo/source-logs:latest
 export SOURCE_IMAGES_DOCKER_IMAGE=bacalhau-onprem-demo/source-images:latest
+export SINK_INFERENCE_SERVER_DOCKER_IMAGE=bacalhau-onprem-demo/sink-inference-server:latest
 export PREDICTABLE_API_PORT=1
 export BACALHAU_LOCAL_DIRECTORY_ALLOW_LIST=$DATAFOLDER
 export SKIP_IMAGE_PULL=1
