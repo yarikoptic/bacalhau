@@ -87,8 +87,8 @@ func (dockerIPFS *StorageProvider) PrepareStorage(ctx context.Context, storageSp
 
 	channelLocalFolder := path.Join(dockerIPFS.LocalDir, storageSpec.Channel)
 	// make a new folder from the Source property of the storage volume
-	// appended onto LocalDir
-	err := os.Mkdir(channelLocalFolder, os.ModePerm)
+	// appended onto LocalDir - don't worry if the folder already exists
+	err := os.MkdirAll(channelLocalFolder, os.ModePerm)
 	if err != nil {
 		return storage.StorageVolume{}, err
 	}
