@@ -1,9 +1,5 @@
 RUSTFLAGS="-C target-feature=+crt-static"
 
-ifeq ($(BUILD_SIDECAR), 1)
-	$(MAKE) build-ipfs-sidecar-image
-endif
-
 ifeq ($(GOOS),)
 GOOS = $(shell $(GO) env GOOS)
 endif
@@ -106,7 +102,7 @@ endif
 swagger-docs:
 	@echo "Building swagger docs..."
 	swag fmt -g "pkg/publicapi/server.go" && \
-	swag init --parseDependency --parseInternal --parseDepth 1 --markdownFiles docs/swagger -g "pkg/publicapi/server.go"
+	swag init --outputTypes "go,json" --parseDependency --parseInternal --parseDepth 1 --markdownFiles docs/swagger -g "pkg/publicapi/server.go"
 	@echo "Swagger docs built."
 
 ################################################################################
@@ -148,13 +144,6 @@ ${BINARY_PATH}: ${CMD_FILES} ${PKG_FILES}
 ################################################################################
 # Target: build-docker-images
 ################################################################################
-IPFS_FUSE_IMAGE ?= "binocarlos/bacalhau-ipfs-sidecar-image"
-IPFS_FUSE_TAG ?= "v1"
-
-.PHONY: build-ipfs-sidecar-image
-build-ipfs-sidecar-image:
-	docker build -t $(IPFS_FUSE_IMAGE):$(IPFS_FUSE_TAG) docker/ipfs-sidecar-image
-
 HTTP_GATEWAY_IMAGE ?= "ghcr.io/bacalhau-project/http-gateway"
 HTTP_GATEWAY_TAG ?= ${TAG}
 .PHONY: build-http-gateway-image
@@ -237,14 +226,12 @@ clean:
 # Target: schema
 ################################################################################
 SCHEMA_DIR ?= schema.bacalhau.org/jsonschema
-SCHEMA_LIST ?= ${SCHEMA_DIR}/../_data/schema.yml
 
 .PHONY: schema
 schema: ${SCHEMA_DIR}/$(shell git describe --tags --abbrev=0).json
 
 ${SCHEMA_DIR}/%.json:
 	./scripts/build-schema-file.sh $$(basename -s .json $@) > $@
-	echo "- $$(basename -s .json $@)" >> $(SCHEMA_LIST)
 
 ################################################################################
 # Target: all_schemas
