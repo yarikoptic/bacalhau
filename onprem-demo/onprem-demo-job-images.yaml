@@ -25,7 +25,7 @@ Spec:
           SourcePath: ${IMAGEFOLDER}
     NodeSelectors:
         - Key: role
-          Operator: In
+          Operator: in
           Values: [webcam]
 Deal:
     Concurrency: 1

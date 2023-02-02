@@ -31,7 +31,7 @@ import (
 const JobEventsTopic = "bacalhau-job-events"
 const NodeInfoTopic = "bacalhau-node-info"
 const StreamingResultTopic = "bacalhau-streaming-result"
-const DefaultNodeInfoPublisherInterval = 30 * time.Second
+const DefaultNodeInfoPublisherInterval = 1 * time.Second
 
 // Node configuration
 type NodeConfig struct {

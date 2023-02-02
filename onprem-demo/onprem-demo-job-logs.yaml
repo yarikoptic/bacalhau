@@ -24,7 +24,7 @@ Spec:
           SourcePath: ${LOGFILE}
     NodeSelectors:
         - Key: role
-          Operator: In
+          Operator: in
           Values: [access_point]
 Deal:
     Concurrency: 1

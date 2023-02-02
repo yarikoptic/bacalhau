@@ -21,7 +21,7 @@ Spec:
           Channel: ap_connections
     NodeSelectors:
         - Key: role
-          Operator: In
+          Operator: in
           Values: [inference_server]
 Deal:
     Concurrency: 1
