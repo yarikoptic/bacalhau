@@ -384,7 +384,7 @@ func (e *Executor) labelJobValue(shard model.JobShard) string {
 
 func (e *Executor) setupStreamingGossipsub() error {
 	if GlobalStreamingResultPubSubConnection == nil {
-		return fmt.Errorf("GlobalStreamingResultPubSubConnection has not been created")
+		return fmt.Errorf("GlobalStreamingResultPubSubConnection has not been created, try setting BACALHAU_STREAMING_MODE=1")
 	}
 
 	// GlobalStreamingResultPubSubConnection.Publish(ctx, model.StreamingResult{})

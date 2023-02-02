@@ -132,7 +132,7 @@ var DID_SUBSCRIBE bool
 
 func (dockerIPFS *StorageProvider) setupStreamingGossipsub() error {
 	if docker.GlobalStreamingResultPubSubConnection == nil {
-		return fmt.Errorf("GlobalStreamingResultPubSubConnection has not been created")
+		return fmt.Errorf("GlobalStreamingResultPubSubConnection has not been created, try setting BACALHAU_STREAMING_MODE=1")
 	}
 
 	if DID_SUBSCRIBE {
