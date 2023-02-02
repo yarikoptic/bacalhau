@@ -15,7 +15,6 @@ import (
 	"github.com/filecoin-project/bacalhau/pkg/storage/combo"
 	filecoinunsealed "github.com/filecoin-project/bacalhau/pkg/storage/filecoin_unsealed"
 	"github.com/filecoin-project/bacalhau/pkg/storage/inline"
-	apicopy "github.com/filecoin-project/bacalhau/pkg/storage/ipfs"
 	ipfs_storage "github.com/filecoin-project/bacalhau/pkg/storage/ipfs"
 	local_directory "github.com/filecoin-project/bacalhau/pkg/storage/local_directory"
 	noop_storage "github.com/filecoin-project/bacalhau/pkg/storage/noop"
