@@ -1,3 +1,4 @@
+# Logs (source)
 Spec:
     Engine: Docker
     Verifier: Noop
@@ -21,5 +22,9 @@ Spec:
           path: /app.log
           StorageSource: LocalDirectory
           SourcePath: ${LOGFILE}
+    NodeSelectors:
+        - Key: role
+          Operator: In
+          Values: [access_point]
 Deal:
     Concurrency: 1

@@ -1,3 +1,4 @@
+# Webcam (source)
 Spec:
     Engine: Docker
     Verifier: Noop
@@ -13,7 +14,7 @@ Spec:
           - ONPREM_DEMO_IMAGE_SOURCE_DIR=/input
           - ONPREM_DEMO_IMAGE_SINK_DIR=/output
           - HOST_PATH=${IMAGEFOLDER}
-          - RESULTS_CHANNEL=images
+          - RESULTS_CHANNEL=webcam-01 # XXX not used
     outputs:
         - Name: output
           path: /output
@@ -22,5 +23,9 @@ Spec:
           path: /input
           StorageSource: LocalDirectory
           SourcePath: ${IMAGEFOLDER}
+    NodeSelectors:
+        - Key: role
+          Operator: In
+          Values: [webcam]
 Deal:
     Concurrency: 1

@@ -1,3 +1,4 @@
+# Inference server (sink)
 Spec:
     Engine: Docker
     Verifier: Noop
@@ -7,7 +8,6 @@ Spec:
         Type: Full
     Docker:
         Image: ${SINK_INFERENCE_SERVER_DOCKER_IMAGE}
-        # Entrypoint: ["tail", "-f", "/dev/null"]
         EnvironmentVariables:
           - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
     inputs:
@@ -15,10 +15,13 @@ Spec:
           path: /webcam_images
           StorageSource: CIDStream
           Channel: webcam-01
-
         - Name: ap_connections
           path: /ap_connections
           StorageSource: CIDStream
           Channel: ap_connections
+    NodeSelectors:
+        - Key: role
+          Operator: In
+          Values: [inference_server]
 Deal:
     Concurrency: 1
