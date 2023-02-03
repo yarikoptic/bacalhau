@@ -23,8 +23,9 @@ Spec:
           StorageSource: LocalDirectory
           SourcePath: ${LOGFILE}
     NodeSelectors:
-        - Key: role
-          Operator: in
-          Values: [access_point]
+    - Key: role
+      Operator: in
+      Values:
+      - access_point
 Deal:
     Concurrency: 1

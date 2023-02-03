@@ -20,8 +20,9 @@ Spec:
           StorageSource: CIDStream
           Channel: ap_connections
     NodeSelectors:
-        - Key: role
-          Operator: in
-          Values: [inference_server]
+    - Key: role
+      Operator: in
+      Values:
+      - inference_server
 Deal:
     Concurrency: 1

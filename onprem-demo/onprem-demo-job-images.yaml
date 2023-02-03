@@ -24,8 +24,9 @@ Spec:
           StorageSource: LocalDirectory
           SourcePath: ${IMAGEFOLDER}
     NodeSelectors:
-        - Key: role
-          Operator: in
-          Values: [webcam]
+    - Key: role
+      Operator: in
+      Values:
+      - webcam
 Deal:
     Concurrency: 1
