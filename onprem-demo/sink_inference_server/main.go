@@ -63,14 +63,14 @@ func notifySlack(labels []string) {
 func processInference(latestImageCid string) {
 	// make directory /outputs/:latestImageCid
 	_, err := os.Stat("/outputs/" + latestImageCid)
-	if err != nil {
-		log.Printf("error checking for directory: %s", err)
-		return
-	}
 	if os.IsNotExist(err) {
 		err = os.MkdirAll("/outputs/"+latestImageCid, 0755)
+		if err != nil {
+			log.Printf("error creating directory: %s", err)
+			return
+		}
 	} else if err != nil {
-		log.Printf("error creating directory: %s", err)
+		log.Printf("error checking: %s", err)
 		return
 	}
 
