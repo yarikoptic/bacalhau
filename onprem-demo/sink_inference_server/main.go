@@ -38,7 +38,20 @@ curl -H "Content-type: application/json" \
 
 func postToSlack(text string) error {
 	payload := fmt.Sprintf(`{"text": "%s"}`, text)
-	http.Post(os.Getenv("SLACK_WEBHOOK_URL"), "application/json", strings.NewReader(payload))
+	resp, err := http.Post(os.Getenv("SLACK_WEBHOOK_URL"), "application/json", strings.NewReader(payload))
+	if err != nil {
+		log.Printf("error posting to slack: %s", err)
+		return err
+	}
+	defer resp.Body.Close()
+	log.Printf("posted to slack: %s", text)
+	// read response body
+	bs, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("error reading response body: %s", err)
+		return err
+	}
+	log.Printf("slack response: %s", string(bs))
 	return nil
 }
 
@@ -78,7 +91,10 @@ func processInference(latestImageCid string) {
 
 	// do AI inference to get labels
 	postToSlack(fmt.Sprintf(
-		"INFERENCE:\n```\n%s\n```\nhttp://mind.lukemarsden.net:9010/%s/image.jpeg", output, latestImageCid,
+		"INFERENCE: http://mind.lukemarsden.net:9010/%s/image.jpeg", latestImageCid,
+	))
+	postToSlack(fmt.Sprintf(
+		"OUTPUT:\n```\n%s\n```", output,
 	))
 }
 
