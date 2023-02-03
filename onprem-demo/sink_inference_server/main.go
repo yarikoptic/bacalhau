@@ -74,7 +74,7 @@ func processInference(latestImageCid string) {
 		return
 	}
 
-	postToSlack(fmt.Sprintf("RUNNING INFERENCE 🤔..."))
+	postToSlack(fmt.Sprintf("🤔 Running inference ..."))
 	// run python detect.py --weights /weights/yolov5s.pt --source /webcam_images/QmeEjqtVU2dZsPpUn1r8cyNXq8ptTwzKKnzv57oUx5Ru7R/ --project /outputs/QmeEjqtVU2dZsPpUn1r8cyNXq8ptTwzKKnzv57oUx5Ru7R
 	log.Printf("running inference on %s", latestImageCid)
 	log.Printf("about to run python detect.py --weights /weights/yolov5s.pt --source /webcam_images/%s/ --project /outputs/%s", latestImageCid, latestImageCid)
@@ -91,10 +91,20 @@ func processInference(latestImageCid string) {
 
 	// do AI inference to get labels
 	postToSlack(fmt.Sprintf(
-		"INFERENCE: http://mind.lukemarsden.net:9010/%s/image.jpeg", latestImageCid,
+		"🧠 Inference: http://mind.lukemarsden.net:9010/%s/exp/image.jpeg", latestImageCid,
 	))
+	// split output on newlines and find line containing "image"
+	var labelLine string
+	for _, line := range strings.Split(string(output), "\n") {
+		if strings.Contains(line, "image 1/1") {
+			// found it
+			labelLine = line
+			break
+		}
+	}
+	// post to slack
 	postToSlack(fmt.Sprintf(
-		"OUTPUT:\n```\n%s\n```", output,
+		"🏷️ Labels: %s", labelLine,
 	))
 }
 
@@ -124,12 +134,12 @@ func processAPJoin(filename string) {
 	}
 
 	postToSlack(fmt.Sprintf(
-		"ACCESS POINT CONNECTION DETECTED: %s",
+		"🚨 Access point connection detected: %s",
 		string(bs),
 	))
 
 	postToSlack(fmt.Sprintf(
-		"LATEST IMAGE: http://mind.lukemarsden.net:9009/%s/image.jpeg", latestImageCid,
+		"📷 Raw image: http://mind.lukemarsden.net:9009/%s/image.jpeg", latestImageCid,
 	))
 
 	processInference(latestImageCid)
