@@ -79,7 +79,7 @@ func processImage(filename string) {
 	cid := shrapnel[len(shrapnel)-1]
 
 	postToSlack(fmt.Sprintf(
-		"received an image: http://212.82.90.194:9009/%s/image.jpeg", cid,
+		"received an image: http://mind.lukemarsden.net:9009/%s/image.jpeg", cid,
 	))
 
 	latestImageCid = filename
