@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"os/exec"
 
 	"github.com/fsnotify/fsnotify"
 )
@@ -46,20 +47,52 @@ func notifySlack(labels []string) {
 }
 
 func processInference(latestImageCid string) {
-	// pretend to do AI inference to get labels
-	labels := []string{"fish", "dog"}
-	notifySlack(labels)
+	// make directory /outputs/:latestImageCid
+	_, err := os.Stat("/outputs/" + latestImageCid)
+	if os.IsNotExist(err) {
+		os.MkdirAll("/outputs/"+latestImageCid, 0755)
+	}
+
+	postToSlack(fmt.Sprintf("RUNNING INFERENCE 🤔..."))
+	// run python detect.py --weights /weights/yolov5s.pt --source /webcam_images/QmeEjqtVU2dZsPpUn1r8cyNXq8ptTwzKKnzv57oUx5Ru7R/ --project /outputs/QmeEjqtVU2dZsPpUn1r8cyNXq8ptTwzKKnzv57oUx5Ru7R
+	log.Printf("running inference on %s", latestImageCid)
+	log.Printf("about to run python detect.py --weights /weights/yolov5s.pt --source /webcam_images/%s/ --project /outputs/%s", latestImageCid, latestImageCid)
+	output, err := exec.Command(
+		"python", "detect.py", "--weights", "/weights/yolov5s.pt",
+		"--source", "/webcam_images/"+latestImageCid+"/",
+		"--project", "/outputs/"+latestImageCid,
+	).CombinedOutput()
+	log.Printf("output: %s", output)
+	if err != nil {
+		log.Printf("error running inference: %s", err)
+		return
+	}
+
+	// do AI inference to get labels
+	postToSlack(fmt.Sprintf(
+		"INFERENCE:\n```\n%s\n```\nhttp://mind.lukemarsden.net:9010/%s/image.jpeg", output, latestImageCid,
+	))
 }
 
 func processAPJoin(filename string) {
 
 	log.Printf("processAPJoin called with %s", filename)
 	// read filename into string
-	f, _ := os.Open(filename + "/output.txt")
-	bs, _ := ioutil.ReadAll(f)
+	f, err := os.Open(filename + "/output.txt")
+	if err != nil {
+		log.Printf("error opening file: %s", err)
+		return
+	}
+
+	bs, err := ioutil.ReadAll(f)
+	if err != nil {
+		log.Printf("error reading file: %s", err)
+		return
+	}
 
 	if latestImageCid == "" {
 		// no image yet
+		log.Printf("no image yet, skipping inference")
 		return
 	}
 
@@ -71,7 +104,6 @@ func processAPJoin(filename string) {
 	postToSlack(fmt.Sprintf(
 		"LATEST IMAGE: http://mind.lukemarsden.net:9009/%s/image.jpeg", latestImageCid,
 	))
-
 
 	processInference(latestImageCid)
 }

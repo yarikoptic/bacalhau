@@ -21,6 +21,11 @@ Spec:
           path: /ap_connections
           StorageSource: CIDStream
           Channel: ap_connections
+          # Just so we can get this out to nginx for now
+        - Name: local
+          path: /outputs
+          StorageSource: LocalDirectory
+          SourcePath: /tmp/bacalhau-onprem-demo/data/inference-outputs
     NodeSelectors:
     - Key: role
       Operator: in
