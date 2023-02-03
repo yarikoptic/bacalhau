@@ -39,7 +39,7 @@ require (
 	github.com/ipfs/go-unixfs v0.4.1
 	github.com/ipfs/go-unixfsnode v1.5.1
 	github.com/ipfs/interface-go-ipfs-core v0.8.1
-	github.com/ipfs/kubo v0.17.0
+	github.com/ipfs/kubo v0.16.0
 	github.com/ipld/go-car/v2 v2.5.1
 	github.com/ipld/go-codec-dagpb v1.5.0
 	github.com/ipld/go-ipld-prime v0.19.0
@@ -311,6 +311,7 @@ require (
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/ucarion/urlpath v0.0.0-20200424170820-7ccc79b76bbb // indirect
+	github.com/wI2L/jsondiff v0.2.0 // indirect
 	github.com/whyrusleeping/base32 v0.0.0-20170828182744-c30ac30633cc // indirect
 	github.com/whyrusleeping/cbor v0.0.0-20171005072247-63513f603b11 // indirect
 	github.com/whyrusleeping/cbor-gen v0.0.0-20221220214510-0333c149dec0 // indirect

@@ -50,9 +50,10 @@ func (ipfsDownloader *Downloader) FetchResult(ctx context.Context, result model.
 
 	err = func() error {
 		log.Ctx(ctx).Debug().Msgf(
-			"Downloading result CID %s '%s' to '%s'...",
+			"Downloading result CID %s of %s to '%s'...",
+			result.Data.CID,
 			result.Data.Name,
-			result.Data.CID, downloadPath,
+			downloadPath,
 		)
 
 		innerCtx, cancel := context.WithDeadline(ctx, time.Now().Add(ipfsDownloader.settings.Timeout))

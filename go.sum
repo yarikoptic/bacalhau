@@ -1181,8 +1181,8 @@ github.com/ipfs/interface-go-ipfs-core v0.8.1 h1:nuFG0YJ429Wd5gtRb3ivlblpknZ5VfD
 github.com/ipfs/interface-go-ipfs-core v0.8.1/go.mod h1:WYC2H6Mu7aGqhlupi/CVawcs0X1Me4uRvV0rcTlo3zM=
 github.com/ipfs/iptb v1.4.0 h1:YFYTrCkLMRwk/35IMyC6+yjoQSHTEcNcefBStLJzgvo=
 github.com/ipfs/iptb-plugins v0.3.0 h1:C1rpq1o5lUZtaAOkLIox5akh6ba4uk/3RwWc6ttVxw0=
-github.com/ipfs/kubo v0.17.0 h1:SioyKL7+RF5RNAA3GYJhqA3fk5AhbRMw5VuKyx+RfQI=
-github.com/ipfs/kubo v0.17.0/go.mod h1:K44dUcIpAxO1jEVw/53e3vbUaMaIi35CWq1Mz7puqMw=
+github.com/ipfs/kubo v0.16.0 h1:goK1zdbHHTYVczj20BvAoA6PWiYvBdDgk8zDH+bKwUs=
+github.com/ipfs/kubo v0.16.0/go.mod h1:mkYGiXL+oi2TCkbUwaDSiOuqvLORuUfnDadIL6GWQIQ=
 github.com/ipfs/tar-utils v0.0.2 h1:UNgHB4x/PPzbMkmJi+7EqC9LNMPDztOVSnx1HAqSNg4=
 github.com/ipfs/tar-utils v0.0.2/go.mod h1:4qlnRWgTVljIMhSG2SqRYn66NT+3wrv/kZt9V+eqxDM=
 github.com/ipld/edelweiss v0.2.0 h1:KfAZBP8eeJtrLxLhi7r3N0cBCo7JmwSRhOJp3WSpNjk=
@@ -1985,7 +1985,7 @@ github.com/onsi/ginkgo v1.16.2/go.mod h1:CObGmKUOKaSC0RjmoAK7tKyn4Azo5P2IWuoMnvw
 github.com/onsi/ginkgo v1.16.4/go.mod h1:dX+/inL/fNMqNlz0e9LfyB9TswhZpCVdJM/Z6Vvnwo0=
 github.com/onsi/ginkgo v1.16.5 h1:8xi0RTUf59SOSfEtZMvwTvXYMzG4gV23XVHOZiXNtnE=
 github.com/onsi/ginkgo v1.16.5/go.mod h1:+E8gABHa3K6zRBolWtd+ROzc/U5bkGt0FwiG042wbpU=
-github.com/onsi/ginkgo/v2 v2.5.0 h1:TRtrvv2vdQqzkwrQ1ke6vtXf7IK34RBUJafIy1wMwls=
+github.com/onsi/ginkgo/v2 v2.4.0 h1:+Ig9nvqgS5OBSACXNk15PLdp0U9XPYROt9CFzVdFGIs=
 github.com/onsi/gomega v0.0.0-20151007035656-2152b45fa28a/go.mod h1:C1qb7wdrVGGVU+Z6iS04AVkA3Q65CEZX59MT0QO5uiA=
 github.com/onsi/gomega v0.0.0-20170829124025-dcabb60a477c/go.mod h1:C1qb7wdrVGGVU+Z6iS04AVkA3Q65CEZX59MT0QO5uiA=
 github.com/onsi/gomega v1.4.1/go.mod h1:C1qb7wdrVGGVU+Z6iS04AVkA3Q65CEZX59MT0QO5uiA=
@@ -1999,7 +1999,7 @@ github.com/onsi/gomega v1.10.3/go.mod h1:V9xEwhxec5O8UDM77eCW8vLymOMltsqPVYWrpDs
 github.com/onsi/gomega v1.13.0/go.mod h1:lRk9szgn8TxENtWd0Tp4c3wjlRfMTMH27I+3Je41yGY=
 github.com/onsi/gomega v1.15.0/go.mod h1:cIuvLEne0aoVhAgh/O6ac0Op8WWw9H6eYCriF+tEHG0=
 github.com/onsi/gomega v1.16.0/go.mod h1:HnhC7FXeEQY45zxNK3PPoIUhzk/80Xly9PcubAlGdZY=
-github.com/onsi/gomega v1.24.0 h1:+0glovB9Jd6z3VR+ScSwQqXVTIfJcGA9UBM8yzQxhqg=
+github.com/onsi/gomega v1.23.0 h1:/oxKu9c2HVap+F3PfKort2Hw5DEU+HGlW8n+tguWsys=
 github.com/op/go-logging v0.0.0-20160315200505-970db520ece7/go.mod h1:HzydrMdWErDVzsI23lYNej1Htcns9BCg93Dk0bBINWk=
 github.com/opencontainers/go-digest v0.0.0-20170106003457-a6d0ee40d420/go.mod h1:cMLVZDEM3+U2I4VmLI6N8jQYUd2OVphdqWwCJHrFt2s=
 github.com/opencontainers/go-digest v0.0.0-20180430190053-c9281466c8b2/go.mod h1:cMLVZDEM3+U2I4VmLI6N8jQYUd2OVphdqWwCJHrFt2s=
@@ -2372,6 +2372,8 @@ github.com/vishvananda/netns v0.0.0-20180720170159-13995c7128cc/go.mod h1:ZjcWmF
 github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df/go.mod h1:JP3t17pCcGlemwknint6hfoeCVQrEMVwxRLRjXpq+BU=
 github.com/vishvananda/netns v0.0.0-20200728191858-db3c7e526aae/go.mod h1:DD4vA1DwXk04H54A1oHXtwZmA0grkVMdPxx/VGLCah0=
 github.com/vishvananda/netns v0.0.0-20210104183010-2eb08e3e575f/go.mod h1:DD4vA1DwXk04H54A1oHXtwZmA0grkVMdPxx/VGLCah0=
+github.com/wI2L/jsondiff v0.2.0 h1:dE00WemBa1uCjrzQUUTE/17I6m5qAaN0EMFOg2Ynr/k=
+github.com/wI2L/jsondiff v0.2.0/go.mod h1:axTcwtBkY4TsKuV+RgoMhHyHKKFRI6nnjRLi8LLYQnA=
 github.com/wangjia184/sortedset v0.0.0-20160527075905-f5d03557ba30/go.mod h1:YkocrP2K2tcw938x9gCOmT5G5eCD6jsTz0SZuyAqwIE=
 github.com/warpfork/go-testmark v0.3.0/go.mod h1:jhEf8FVxd+F17juRubpmut64NEG6I2rgkUhlcqqXwE0=
 github.com/warpfork/go-testmark v0.9.0/go.mod h1:jhEf8FVxd+F17juRubpmut64NEG6I2rgkUhlcqqXwE0=

@@ -291,9 +291,10 @@ func (n *Node) Client() Client {
 }
 
 func (n *Node) Close() error {
-	var errs error
+	log.Debug().Msgf("Closing IPFS node %s", n.ID())
+	var errs *multierror.Error
 	if n.ipfsNode != nil {
-		errs = multierror.Append(n.ipfsNode.Close())
+		errs = multierror.Append(errs, n.ipfsNode.Close())
 
 		// We need to make sure we close the repo before we delete the disk contents as this will cause IPFS to print out messages about how
 		// 'flatfs could not store final value of disk usage to file', which is both annoying and can cause test flakes
@@ -311,7 +312,7 @@ func (n *Node) Close() error {
 			errs = multierror.Append(errs, fmt.Errorf("failed to clean up repo directory: %w", err))
 		}
 	}
-	return errs
+	return errs.ErrorOrNil()
 }
 
 // createNode spawns a new IPFS node using a temporary repo path.

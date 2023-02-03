@@ -166,6 +166,7 @@ func (cl Client) Get(ctx context.Context, cid, outputPath string) error {
 		return fmt.Errorf("failed to write to '%s': %w", outputPath, err)
 	}
 
+	log.Debug().Msgf("Successfully fetched ipfs cid '%s' to '%s'", cid, outputPath)
 	return nil
 }
 
