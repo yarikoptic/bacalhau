@@ -159,7 +159,8 @@ func (e *Executor) RunShard(
 			mounts = append(mounts, mount.Mount{
 				Type: mount.TypeBind,
 				// this is an input volume so is read only
-				ReadOnly: true,
+				// XXX disabled as tmp onprem demo hack so we can write to local directories
+				// ReadOnly: true,
 				Source:   volumeMount.Source,
 				Target:   volumeMount.Target,
 			})
