@@ -8,8 +8,17 @@ COPY . .
 WORKDIR /app/onprem-demo/sink_inference_server
 RUN CGO_ENABLED=0 go build -o onprem-demo-sink_inference_server
 
-FROM alpine:latest as server
-WORKDIR /app
+#FROM alpine:latest as server
+#WORKDIR /app
+#COPY --from=build /app/onprem-demo/sink_inference_server/onprem-demo-sink_inference_server /app/onprem-demo-sink_inference_server
+#RUN chmod a+x /app/onprem-demo-sink_inference_server
+#ENTRYPOINT [ "/app/onprem-demo-sink_inference_server" ]
+
+FROM ultralytics/yolov5:v6.2
+RUN mkdir /weights
+RUN wget -O /weights/yolov5s.pt https://github.com/ultralytics/yolov5/releases/download/v6.2/yolov5s.pt
+# needs to run something like:
+# python detect.py --weights /weights/yolov5s.pt --source $(pwd)/data/images --project /
 COPY --from=build /app/onprem-demo/sink_inference_server/onprem-demo-sink_inference_server /app/onprem-demo-sink_inference_server
 RUN chmod a+x /app/onprem-demo-sink_inference_server
 ENTRYPOINT [ "/app/onprem-demo-sink_inference_server" ]

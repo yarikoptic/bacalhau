@@ -58,15 +58,20 @@ func processAPJoin(filename string) {
 	f, _ := os.Open(filename + "/output.txt")
 	bs, _ := ioutil.ReadAll(f)
 
+	if latestImageCid == "" {
+		// no image yet
+		return
+	}
+
 	postToSlack(fmt.Sprintf(
 		"ACCESS POINT CONNECTION DETECTED: %s",
 		string(bs),
 	))
 
-	if latestImageCid == "" {
-		// no image yet
-		return
-	}
+	postToSlack(fmt.Sprintf(
+		"LATEST IMAGE: http://mind.lukemarsden.net:9009/%s/image.jpeg", latestImageCid,
+	))
+
 
 	processInference(latestImageCid)
 }
@@ -78,11 +83,7 @@ func processImage(filename string) {
 	shrapnel := strings.Split(filename, "/")
 	cid := shrapnel[len(shrapnel)-1]
 
-	postToSlack(fmt.Sprintf(
-		"received an image: http://mind.lukemarsden.net:9009/%s/image.jpeg", cid,
-	))
-
-	latestImageCid = filename
+	latestImageCid = cid
 }
 
 func main() {

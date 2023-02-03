@@ -2,6 +2,8 @@
 Spec:
     Engine: Docker
     Verifier: Noop
+    Resources:
+      GPU: "1"
     Publisher: IPFS
     Network:
         # So we can send slack notifications
