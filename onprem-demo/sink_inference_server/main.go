@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"os/exec"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 )
@@ -49,8 +50,15 @@ func notifySlack(labels []string) {
 func processInference(latestImageCid string) {
 	// make directory /outputs/:latestImageCid
 	_, err := os.Stat("/outputs/" + latestImageCid)
+	if err != nil {
+		log.Printf("error checking for directory: %s", err)
+		return
+	}
 	if os.IsNotExist(err) {
-		os.MkdirAll("/outputs/"+latestImageCid, 0755)
+		err = os.MkdirAll("/outputs/"+latestImageCid, 0755)
+	} else if err != nil {
+		log.Printf("error creating directory: %s", err)
+		return
 	}
 
 	postToSlack(fmt.Sprintf("RUNNING INFERENCE 🤔..."))
@@ -75,6 +83,9 @@ func processInference(latestImageCid string) {
 }
 
 func processAPJoin(filename string) {
+
+	// ugh, the directory is created before the file inside it exists
+	time.Sleep(100 * time.Millisecond)
 
 	log.Printf("processAPJoin called with %s", filename)
 	// read filename into string
@@ -119,6 +130,7 @@ func processImage(filename string) {
 }
 
 func main() {
+	log.Printf("Starting up.")
 	// Create new watcher.
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
