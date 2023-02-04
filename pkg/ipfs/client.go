@@ -148,6 +148,7 @@ func (cl Client) Get(ctx context.Context, cid, outputPath string) error {
 	ctx, span := system.GetTracer().Start(ctx, "pkg/ipfs.Get")
 	defer span.End()
 
+	log.Info().Msgf("Fetching %s from IPFS", cid)
 	// Output path is required to not exist yet:
 	ok, err := system.PathExists(outputPath)
 	if err != nil {
@@ -157,9 +158,25 @@ func (cl Client) Get(ctx context.Context, cid, outputPath string) error {
 		return fmt.Errorf("output path '%s' already exists", outputPath)
 	}
 
+	providersCh, err := cl.API.Dht().FindProviders(ctx, icorepath.New(cid))
+	if err != nil {
+		log.Error().Err(err).Msgf("failed to find providers for %s", cid)
+	}
+	var providers []string
+	for info := range providersCh {
+		providers = append(providers, info.ID.String())
+	}
+	log.Info().Msgf("Found %d providers for %s: %+v", len(providers), cid, providers)
+
 	node, err := cl.API.Unixfs().Get(ctx, icorepath.New(cid))
 	if err != nil {
 		return fmt.Errorf("failed to get ipfs cid '%s': %w", cid, err)
+	}
+	size, err := node.Size()
+	if err != nil {
+		return fmt.Errorf("failed to get ipfs cid '%s' size: %w", cid, err)
+	} else {
+		log.Info().Msgf("ipfs cid '%s' size: %d", cid, size)
 	}
 
 	if err := files.WriteTo(node, outputPath); err != nil {
