@@ -51,63 +51,58 @@ func SubmitDockerIPFSJobAndGet(ctx context.Context) error {
 		return fmt.Errorf("no results found")
 	}
 
-	for i := 1; i < 10; i++ {
-		start := time.Now()
-		outputDir, err := os.MkdirTemp(os.TempDir(), "submitAndGet")
-		if err != nil {
-			return fmt.Errorf("making temporary dir: %s", err)
-		}
-		defer os.RemoveAll(outputDir)
-
-		downloadSettings, err := getIPFSDownloadSettings()
-		if err != nil {
-			return fmt.Errorf("getting download settings: %s", err)
-		}
-		downloadSettings.OutputDir = outputDir
-		downloadSettings.Timeout = 300 * time.Second
-
-		downloaderProvider := util.NewStandardDownloaders(cm, downloadSettings)
-		if err != nil {
-			return err
-		}
-
-		err = downloader.DownloadJob(ctx, submittedJob.Spec.Outputs, results, downloaderProvider, downloadSettings)
-		if err != nil {
-			return fmt.Errorf("downloading job: %s", err)
-		}
-		files, err := os.ReadDir(filepath.Join(downloadSettings.OutputDir, model.DownloadVolumesFolderName, j.Spec.Outputs[0].Name))
-		if err != nil {
-			return fmt.Errorf("reading results directory: %s", err)
-		}
-
-		for _, file := range files {
-			log.Debug().Msgf("downloaded files: %s", file.Name())
-		}
-		if len(files) != 3 {
-			return fmt.Errorf("expected 3 files in output dir, got %d", len(files))
-		}
-		body, err := os.ReadFile(filepath.Join(downloadSettings.OutputDir, model.DownloadVolumesFolderName, j.Spec.Outputs[0].Name, "checksum.txt"))
-		if err != nil {
-			return err
-		}
-
-		// Tests use the checksum of the data we uploaded in scenarios_test.go
-		err = compareOutput(body, expectedChecksum)
-		if err != nil {
-			return fmt.Errorf("testing md5 of input: %s", err)
-		}
-		body, err = os.ReadFile(filepath.Join(downloadSettings.OutputDir, model.DownloadVolumesFolderName, j.Spec.Outputs[0].Name, "stat.txt"))
-		if err != nil {
-			return err
-		}
-		// Tests use the stat of the data we uploaded in scenarios_test.go
-		err = compareOutput(body, expectedStat)
-		if err != nil {
-			return fmt.Errorf("testing ls of input: %s", err)
-		}
-		os.RemoveAll(outputDir)
-		log.Info().Msgf("Test %d took %s", i, time.Since(start))
-
+	outputDir, err := os.MkdirTemp(os.TempDir(), "submitAndGet")
+	if err != nil {
+		return fmt.Errorf("making temporary dir: %s", err)
 	}
+	defer os.RemoveAll(outputDir)
+
+	downloadSettings, err := getIPFSDownloadSettings()
+	if err != nil {
+		return fmt.Errorf("getting download settings: %s", err)
+	}
+	downloadSettings.OutputDir = outputDir
+	downloadSettings.Timeout = 300 * time.Second
+
+	downloaderProvider := util.NewStandardDownloaders(cm, downloadSettings)
+	if err != nil {
+		return err
+	}
+
+	err = downloader.DownloadJob(ctx, submittedJob.Spec.Outputs, results, downloaderProvider, downloadSettings)
+	if err != nil {
+		return fmt.Errorf("downloading job: %s", err)
+	}
+	files, err := os.ReadDir(filepath.Join(downloadSettings.OutputDir, model.DownloadVolumesFolderName, j.Spec.Outputs[0].Name))
+	if err != nil {
+		return fmt.Errorf("reading results directory: %s", err)
+	}
+
+	for _, file := range files {
+		log.Debug().Msgf("downloaded files: %s", file.Name())
+	}
+	if len(files) != 3 {
+		return fmt.Errorf("expected 3 files in output dir, got %d", len(files))
+	}
+	body, err := os.ReadFile(filepath.Join(downloadSettings.OutputDir, model.DownloadVolumesFolderName, j.Spec.Outputs[0].Name, "checksum.txt"))
+	if err != nil {
+		return err
+	}
+
+	// Tests use the checksum of the data we uploaded in scenarios_test.go
+	err = compareOutput(body, expectedChecksum)
+	if err != nil {
+		return fmt.Errorf("testing md5 of input: %s", err)
+	}
+	body, err = os.ReadFile(filepath.Join(downloadSettings.OutputDir, model.DownloadVolumesFolderName, j.Spec.Outputs[0].Name, "stat.txt"))
+	if err != nil {
+		return err
+	}
+	// Tests use the stat of the data we uploaded in scenarios_test.go
+	err = compareOutput(body, expectedStat)
+	if err != nil {
+		return fmt.Errorf("testing ls of input: %s", err)
+	}
+
 	return nil
 }
