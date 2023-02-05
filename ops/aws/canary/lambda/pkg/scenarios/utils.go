@@ -13,6 +13,7 @@ import (
 	"github.com/filecoin-project/bacalhau/pkg/model"
 	"github.com/filecoin-project/bacalhau/pkg/requester/publicapi"
 	"github.com/filecoin-project/bacalhau/pkg/system"
+	"k8s.io/apimachinery/pkg/selection"
 )
 
 const defaultEchoMessage = "hello λ!"
@@ -76,10 +77,16 @@ func getSampleDockerIPFSJob() *model.Job {
 			},
 		},
 		Annotations: []string{canaryAnnotation},
-	}
-
-	j.Spec.Deal = model.Deal{
-		Concurrency: 1,
+		NodeSelectors: []model.LabelSelectorRequirement{
+			{
+				Key:      "owner",
+				Operator: selection.Equals,
+				Values:   []string{"bacalhau"},
+			},
+		},
+		Deal: model.Deal{
+			Concurrency: 1,
+		},
 	}
 	return j
 }
