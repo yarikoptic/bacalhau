@@ -99,7 +99,7 @@ export class CanaryStack extends cdk.Stack {
             ephemeralStorageSize: Size.mebibytes(props.storageSize),
             environment: {
                 'BACALHAU_DIR': '/tmp', //bacalhau uses $HOME to store configs by default, which doesn't exist in lambda
-                'LOG_LEVEL': 'DEBUG',
+                'LOG_LEVEL': 'TRACE',
                 'BACALHAU_ENVIRONMENT': this.config.bacalhauEnvironment,
             }
         });
