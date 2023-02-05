@@ -19,6 +19,8 @@ export interface ScenarioProps {
     readonly storageSize: number;
     readonly evaluationPeriods: number;
     readonly datapointsToAlarm: number;
+    readonly availabilityThreshold: number;
+    readonly doAlarm: boolean;
 }
 
 const DEFAULT_SCENARIO_PROPS: ScenarioProps = {
@@ -29,6 +31,8 @@ const DEFAULT_SCENARIO_PROPS: ScenarioProps = {
     storageSize: 512,
     evaluationPeriods: 5,
     datapointsToAlarm: 3,
+    availabilityThreshold: 95,
+    doAlarm: true,
 }
 
 export class CanaryStack extends cdk.Stack {
@@ -56,7 +60,7 @@ export class CanaryStack extends cdk.Stack {
         this.createLambdaScenarioFunc({ ...DEFAULT_SCENARIO_PROPS, ...{action: "submitWithConcurrencyOwnedNodes"}});
         this.createLambdaScenarioFunc({ ...DEFAULT_SCENARIO_PROPS, ...{
                 action: "submitDockerIPFSJobAndGet", timeoutMinutes: 2, rateMinutes: 3, memorySize: 5120, storageSize: 5012,
-                datapointsToAlarm: 4, evaluationPeriods: 6}});
+                datapointsToAlarm: 4, evaluationPeriods: 6, doAlarm: false}});
 
         if (config.createOperators) {
             this.createOperatorGroup()
@@ -163,19 +167,20 @@ export class CanaryStack extends cdk.Stack {
 
     private createAlarm(props: ScenarioProps, func: lambda.Function) {
         const actionTitle = props.action.charAt(0).toUpperCase() + props.action.slice(1)
-        const threshold = 95
         const availabilityMetric = this.getAvailabilityMetric(func)
         const alarm = availabilityMetric.createAlarm(this, actionTitle + "Alarm", {
             alarmDescription: actionTitle + ' ' + this.config.envTitle + ' Availability',
-            threshold: threshold,
+            threshold: props.availabilityThreshold,
             comparisonOperator: cloudwatch.ComparisonOperator.LESS_THAN_THRESHOLD,
             evaluationPeriods: props.evaluationPeriods,
             datapointsToAlarm: props.datapointsToAlarm,
             treatMissingData: cloudwatch.TreatMissingData.BREACHING,
         });
 
-        alarm.addAlarmAction(new cloudwatchActions.SnsAction(this.snsAlarmTopic));
-        alarm.addOkAction(new cloudwatchActions.SnsAction(this.snsAlarmTopic));
+        if (props.doAlarm) {
+            alarm.addAlarmAction(new cloudwatchActions.SnsAction(this.snsAlarmTopic));
+            alarm.addOkAction(new cloudwatchActions.SnsAction(this.snsAlarmTopic));
+        }
     }
 
     private createOperatorGroup() {
