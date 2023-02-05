@@ -352,6 +352,7 @@ func createNode(ctx context.Context, cm *system.CleanupManager, cfg Config) (ico
 	bootstrap.DefaultBootstrapConfig.BootstrapPeers = func() []peer.AddrInfo {
 		return peerInfos
 	}
+	log.Info().Msgf("Bootstrapping with %+v", peerInfos)
 	nodeOptions := &core.BuildCfg{
 		Repo:    repo,
 		Online:  true,
