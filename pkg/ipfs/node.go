@@ -12,6 +12,8 @@ import (
 	"github.com/filecoin-project/bacalhau/pkg/system"
 	"github.com/hashicorp/go-multierror"
 	icore "github.com/ipfs/interface-go-ipfs-core"
+	"github.com/ipfs/kubo/core/bootstrap"
+	"github.com/ipfs/kubo/core/node/libp2p"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/phayes/freeport"
@@ -24,7 +26,6 @@ import (
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/coreapi"
 	"github.com/ipfs/kubo/core/corehttp"
-	"github.com/ipfs/kubo/core/node/libp2p"
 	"github.com/ipfs/kubo/plugin/loader"
 	kuboRepo "github.com/ipfs/kubo/repo"
 	"github.com/ipfs/kubo/repo/fsrepo"
@@ -177,9 +178,9 @@ func newNodeWithConfig(ctx context.Context, cm *system.CleanupManager, cfg Confi
 		}
 	}()
 
-	if err = connectToPeers(ctx, api, ipfsNode, cfg.getPeerAddrs()); err != nil {
-		log.Error().Msgf("ipfs node failed to connect to peers: %s", err)
-	}
+	//if err = connectToPeers(ctx, api, ipfsNode, cfg.getPeerAddrs()); err != nil {
+	//	log.Error().Msgf("ipfs node failed to connect to peers: %s", err)
+	//}
 
 	if err = serveAPI(cm, ipfsNode, repoPath); err != nil {
 		return nil, fmt.Errorf("failed to serve API: %w", err)
@@ -332,10 +333,29 @@ func createNode(ctx context.Context, cm *system.CleanupManager, cfg Config) (ico
 		return nil, nil, "", fmt.Errorf("failed to open temp repo: %w", err)
 	}
 
+	// bootsrap peers
+	var peerInfos []peer.AddrInfo
+	for _, addrStr := range cfg.PeerAddrs {
+		addr, err2 := ma.NewMultiaddr(addrStr)
+		if err2 != nil {
+			return nil, nil, "", fmt.Errorf("failed to parse peer address: %w", err2)
+		}
+
+		pii, err2 := peer.AddrInfoFromP2pAddr(addr)
+		if err2 != nil {
+			return nil, nil, "", fmt.Errorf("failed to parse peer address: %w", err2)
+		}
+
+		peerInfos = append(peerInfos, *pii)
+	}
+
+	bootstrap.DefaultBootstrapConfig.BootstrapPeers = func() []peer.AddrInfo {
+		return peerInfos
+	}
 	nodeOptions := &core.BuildCfg{
 		Repo:    repo,
 		Online:  true,
-		Routing: libp2p.DHTOption,
+		Routing: libp2p.DHTClientOption,
 	}
 
 	node, err := core.NewNode(ctx, nodeOptions)

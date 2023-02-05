@@ -16,6 +16,7 @@ import (
 	icore "github.com/ipfs/interface-go-ipfs-core"
 	icoreoptions "github.com/ipfs/interface-go-ipfs-core/options"
 	icorepath "github.com/ipfs/interface-go-ipfs-core/path"
+	"github.com/libp2p/go-libp2p/core/peer"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/rs/zerolog/log"
 )
@@ -162,11 +163,14 @@ func (cl Client) Get(ctx context.Context, cid, outputPath string) error {
 	if err != nil {
 		log.Error().Err(err).Msgf("failed to find providers for %s", cid)
 	}
-	var providers []string
+	var providers []peer.AddrInfo
 	for info := range providersCh {
-		providers = append(providers, info.ID.String())
+		providers = append(providers, info)
 	}
-	log.Info().Msgf("Found %d providers for %s: %+v", len(providers), cid, providers)
+	log.Info().Msgf("Found %d providers for %s", len(providers), cid)
+	for i, provider := range providers {
+		log.Info().Msgf("Provider %d: %+v", i, provider)
+	}
 
 	node, err := cl.API.Unixfs().Get(ctx, icorepath.New(cid))
 	if err != nil {
