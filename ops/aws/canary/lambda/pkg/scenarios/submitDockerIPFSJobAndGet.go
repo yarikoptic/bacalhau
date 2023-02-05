@@ -62,7 +62,7 @@ func SubmitDockerIPFSJobAndGet(ctx context.Context) error {
 		return fmt.Errorf("getting download settings: %s", err)
 	}
 	downloadSettings.OutputDir = outputDir
-	downloadSettings.Timeout = 300 * time.Second
+	downloadSettings.Timeout = 100 * time.Second
 
 	downloaderProvider := util.NewStandardDownloaders(cm, downloadSettings)
 	if err != nil {
