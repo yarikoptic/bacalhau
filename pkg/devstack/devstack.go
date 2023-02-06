@@ -294,7 +294,8 @@ func NewDevStack(
 				UploadDir:       lotus.UploadDir,
 				// devstack will only be talking to a single node, so don't bother filtering based on ping
 				// as the ping may be quite large while it is trying to run everything
-				MaximumPing: time.Duration(math.MaxInt64),
+				MaximumPing:  time.Duration(math.MaxInt64),
+				MinerAddress: "t01000",
 			}
 		}
 

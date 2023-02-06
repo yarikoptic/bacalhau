@@ -32,6 +32,8 @@ type PublisherConfig struct {
 	UploadDir string
 	// How close miner should be when selecting the cheapest
 	MaximumPing time.Duration
+
+	MinerAddress string
 }
 
 type Publisher struct {
@@ -176,27 +178,21 @@ func (l *Publisher) createDeal(ctx context.Context, contentCid cid.Cid) (string,
 		return "", err
 	}
 
-	miners, err := l.client.StateListMiners(ctx, api.TipSetKey{})
-	if err != nil {
-		return "", err
-	}
+	var cheapest *ask
+	if l.config.MinerAddress != "" {
+		miner, err := address.NewFromString(l.config.MinerAddress)
+		if err != nil {
+			return "", err
+		}
 
-	log.Ctx(ctx).Debug().Int("count", len(miners)).Msg("Initial list of miners")
-
-	asks, errs := throttledMap(miners, func(miner address.Address) (*ask, error) {
-		return l.queryMiner(ctx, dataSize, miner)
-	}, parallelMinerQueries)
-	if len(asks) == 0 {
-		log.Ctx(ctx).
-			Err(multierror.Append(nil, errs...)).
-			Msg("Couldn't find a miner")
-		return "", fmt.Errorf("unable to find a miner")
-	}
-
-	cheapest := asks[0]
-	for _, a := range asks {
-		if a.epochPrice.LessThan(cheapest.epochPrice) {
-			cheapest = a
+		cheapest, err = l.queryMiner(ctx, dataSize, miner)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		cheapest, err = l.discoverMiner(ctx, dataSize)
+		if err != nil {
+			return "", err
 		}
 	}
 
@@ -223,6 +219,34 @@ func (l *Publisher) createDeal(ctx context.Context, contentCid cid.Cid) (string,
 	}
 
 	return deal.String(), nil
+}
+
+func (l *Publisher) discoverMiner(ctx context.Context, dataSize api.DataCIDSize) (*ask, error) {
+	miners, err := l.client.StateListMiners(ctx, api.TipSetKey{})
+	if err != nil {
+		return nil, err
+	}
+
+	log.Ctx(ctx).Debug().Int("count", len(miners)).Msg("Initial list of miners")
+
+	asks, errs := throttledMap(miners, func(miner address.Address) (*ask, error) {
+		return l.queryMiner(ctx, dataSize, miner)
+	}, parallelMinerQueries)
+	if len(asks) == 0 {
+		log.Ctx(ctx).
+			Err(multierror.Append(nil, errs...)).
+			Msg("Couldn't find a miner")
+		return nil, fmt.Errorf("unable to find a miner")
+	}
+
+	cheapest := asks[0]
+	for _, a := range asks {
+		if a.epochPrice.LessThan(cheapest.epochPrice) {
+			cheapest = a
+		}
+	}
+
+	return cheapest, nil
 }
 
 func (l *Publisher) waitUntilDealIsReady(ctx context.Context, deal *cid.Cid) error {

@@ -68,23 +68,23 @@ func NewClient(api icore.CoreAPI) Client {
 // test networks. WaitUntilAvailable will respect context deadlines/cancels,
 // and will propagate context cancellations back to the caller.
 // NOTE: if you do not pass a context with a deadline/cancel in to this
-//
-//	function, it may attempt to call the api server forever.
+// function, it may attempt to call the api server forever.
 func (cl Client) WaitUntilAvailable(ctx context.Context) error {
+	t := time.NewTicker(1 * time.Second)
+	defer t.Stop()
+
 	for {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
+		select {
+		case <-t.C:
+			_, err := cl.ID(ctx)
+			if err == nil {
+				return nil
+			}
 
-		_, err := cl.ID(ctx)
-		if err != nil {
-			log.Ctx(ctx).Debug().Msgf("non-critical error waiting for node availability: %v", err)
-		} else {
-			return nil
+			log.Ctx(ctx).Debug().Err(err).Msgf("non-critical error waiting for node availability")
+		case <-ctx.Done():
+			return ctx.Err()
 		}
-
-		// don't spin as fast as possible:
-		time.Sleep(time.Second)
 	}
 }
 
