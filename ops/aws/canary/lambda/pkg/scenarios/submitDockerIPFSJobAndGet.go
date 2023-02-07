@@ -81,8 +81,8 @@ func SubmitDockerIPFSJobAndGet(ctx context.Context) error {
 	for _, file := range files {
 		log.Debug().Msgf("downloaded files: %s", file.Name())
 	}
-	if len(files) != 3 {
-		return fmt.Errorf("expected 3 files in output dir, got %d", len(files))
+	if len(files) != 4 {
+		return fmt.Errorf("expected 4 files in output dir, got %d", len(files))
 	}
 	body, err := os.ReadFile(filepath.Join(downloadSettings.OutputDir, model.DownloadVolumesFolderName, j.Spec.Outputs[0].Name, "checksum.txt"))
 	if err != nil {
