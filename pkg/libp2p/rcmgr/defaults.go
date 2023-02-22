@@ -1,10 +1,14 @@
 package rcmgr
 
 import (
-	"github.com/filecoin-project/bacalhau/pkg/transport/bprotocol"
+	"contrib.go.opencensus.io/exporter/prometheus"
 	"github.com/libp2p/go-libp2p"
 	libp2p_rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 	"github.com/libp2p/go-libp2p/p2p/host/resource-manager/obs"
+	prom "github.com/prometheus/client_golang/prometheus"
+	"go.opencensus.io/stats/view"
+
+	"github.com/filecoin-project/bacalhau/pkg/transport/bprotocol"
 )
 
 func SetDefaultServiceLimits(config *libp2p_rcmgr.ScalingLimitConfig) {
@@ -47,12 +51,18 @@ var DefaultResourceManager = func(cfg *libp2p.Config) error {
 	libp2p.SetDefaultServiceLimits(&limits)
 	SetDefaultServiceLimits(&limits)
 
-	// // Hook up the trace reporter metrics. This will expose all opencensus
-	// // stats via the default prometheus registry. See https://opencensus.io/exporters/supported-exporters/go/prometheus/ for other options.
-	// err := view.Register(obs.DefaultViews...)
-	// if err != nil {
-	// 	log.Warn().Err(err).Msg("failed to register resource manager metrics")
-	// }
+	// Hook up the trace reporter metrics. This will expose all opencensus
+	// stats via the default prometheus registry. See https://opencensus.io/exporters/supported-exporters/go/prometheus/ for other options.
+	registry := prom.NewRegistry()
+	obs.MustRegisterWith(registry)
+	pe, err := prometheus.NewExporter(prometheus.Options{
+		Namespace: "TODO",
+		Registry:  registry,
+	})
+	if err != nil {
+		return err
+	}
+	view.RegisterExporter(pe)
 
 	str, err := obs.NewStatsTraceReporter()
 	if err != nil {
