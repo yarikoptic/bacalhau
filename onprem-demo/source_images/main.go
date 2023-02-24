@@ -51,15 +51,11 @@ func main() {
 				log.Println("event:", event)
 				if event.Has(fsnotify.Write) {
 					log.Println("modified file:", event.Name)
-					// XXX what if the whole file write isn't finished yet
 					_, err := copy(event.Name, imageSinkDir+"/"+"image.jpg")
 					if err != nil {
 						log.Printf("error copying file: %s", err)
 					}
-					// TODO: http request
 					r := StreamingResult{
-						// bit of a hack, would be nicer if this was the path
-						// inside the container, but for now it works
 						LocalPath:  os.Getenv("HOST_PATH"),
 						InlineData: "",
 						Channel:    "webcam-01",
