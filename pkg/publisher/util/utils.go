@@ -23,7 +23,7 @@ func NewIPFSPublishers(
 	estuaryAPIKey string,
 	lotusConfig *filecoinlotus.PublisherConfig,
 ) (publisher.PublisherProvider, error) {
-	defaultPriorityPublisherTimeout := time.Second * 2
+	defaultPriorityPublisherTimeout := time.Minute * 2
 	noopPublisher := noop.NewNoopPublisher()
 	ipfsPublisher, err := ipfs.NewIPFSPublisher(ctx, cm, cl)
 	if err != nil {
