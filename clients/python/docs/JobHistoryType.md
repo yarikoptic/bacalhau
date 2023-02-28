@@ -1,4 +1,4 @@
-# JobEventJobExecutionPlan
+# JobHistoryType
 
 ## Properties
 Name | Type | Description | Notes

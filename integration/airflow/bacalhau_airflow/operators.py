@@ -3,6 +3,11 @@ Airflow operators for Bacalhau.
 """
 import time
 
+from attr import attr
+from openlineage.airflow.extractors.base import OperatorLineage
+from openlineage.client.facet import BaseFacet
+from openlineage.client.run import Dataset
+
 from airflow.compat.functools import cached_property
 from airflow.models import BaseOperator
 from airflow.models.baseoperator import BaseOperatorLink
@@ -36,7 +41,7 @@ class BacalhauSubmitJobOperator(BaseOperator):
         job_spec: dict,
         #  inputs: dict = None,
         input_volumes: list = [],
-        **kwargs
+        **kwargs,
     ) -> None:
         """Constructor of the operator to submit a Bacalhau job.
 
@@ -58,12 +63,12 @@ class BacalhauSubmitJobOperator(BaseOperator):
                 For example, the list `[ "{{ task_instance.xcom_pull(task_ids='run-1', key='cids') }}:/datasets" ]` takes all shards created by task "run-1" and mounts them at "/datasets".
         """
         super().__init__(**kwargs)
+        # On start properties
         self.api_version = api_version
-        # inject inputs and input_volumes into job_spec
-
         self.job_spec = job_spec
-        # self.inputs = inputs
         self.input_volumes = input_volumes
+        # On complete properties
+        self.bacalhau_job_id = ""
 
     def execute(self, context: Context) -> str:
         """Execute the operator.
@@ -115,6 +120,7 @@ class BacalhauSubmitJobOperator(BaseOperator):
         job_id = self.hook.submit_job(
             api_version=self.api_version, job_spec=self.job_spec
         )
+        self.bacalhau_job_id = job_id
         context["ti"].xcom_push(key="bacalhau_job_id", value=job_id)
         print("job_id")
         print(job_id)
@@ -126,11 +132,14 @@ class BacalhauSubmitJobOperator(BaseOperator):
 
             terminate = False
             for event in events["events"]:
+                print(event)
                 if "event_name" in event:
                     # TODO fix case when event hangs/errors out/never completes
                     if (
                         event["event_name"] == "ComputeError"
+                        or event["event_name"] == "Error"
                         or event["event_name"] == "ResultsPublished"
+                        or event["event_name"] == "Completed"
                     ):
                         # print(event)
                         terminate = True
@@ -139,7 +148,7 @@ class BacalhauSubmitJobOperator(BaseOperator):
                     #     print(event)
             if terminate:
                 break
-            print("clock it ticking...")
+            print("clock is ticking...")
             time.sleep(2)
 
         # fetch all shards' resulting CIDs
@@ -162,3 +171,33 @@ class BacalhauSubmitJobOperator(BaseOperator):
     def get_hook(self):
         """Create and return an BacalhauHook (cached)."""
         return self.hook
+
+    # get_openlineage_facets_on_start() is run by Openlineage/Marquez before the execute() funciton is run, allowing
+    # to collect metadata before the execution of the task.
+    # Implementation details can be found in Openlineage doc: https://openlineage.io/docs/integrations/airflow/operator#implementation
+    # TODO this peace of code has not been tested and should be refactored before being used
+    # def get_openlineage_facets_on_start(self) -> OperatorLineage:
+    #     return OperatorLineage(
+    #         inputs=[
+    #             Dataset(
+    #                 namespace=f'{os.getenv("BACALHAU_API_HOST")}:1234',
+    #                 name="inputs",
+    #                 facets={
+    #                     "command": self.command,
+    #                     "concurrency": self.concurrency,
+    #                     "dry_run": self.dry_run,
+    #                     "env": self.env,
+    #                     "gpu": self.gpu,
+    #                     "input_urls": self.input_urls,
+    #                     "input_volumes": self.input_volumes,
+    #                     "inputs": self.inputs,
+    #                     "output_volumes": self.output_volumes,
+    #                     "publisher": self.publisher,
+    #                     "workdir": self.workdir,
+    #                 },
+    #             )
+    #         ],
+    #         output=[],
+    #         run_facets={},
+    #         job_facets={},
+    #     )

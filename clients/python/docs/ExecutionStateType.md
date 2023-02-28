@@ -1,4 +1,4 @@
-# JobShardStateState
+# ExecutionStateType
 
 ## Properties
 Name | Type | Description | Notes

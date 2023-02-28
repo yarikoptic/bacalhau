@@ -4,13 +4,61 @@ All URIs are relative to *http://bootstrap.production.bacalhau.org:1234*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
+[**cancel**](JobApi.md#cancel) | **POST** /requester/cancel | Cancels the job with the job-id specified in the body payload.
 [**events**](JobApi.md#events) | **POST** /requester/events | Returns the events related to the job-id passed in the body payload. Useful for troubleshooting.
 [**list**](JobApi.md#list) | **POST** /requester/list | Simply lists jobs.
-[**local_events**](JobApi.md#local_events) | **POST** /requester/local_events | Returns the node&#39;s local events related to the job-id passed in the body payload. Useful for troubleshooting.
 [**results**](JobApi.md#results) | **POST** /requester/results | Returns the results of the job-id specified in the body payload.
 [**states**](JobApi.md#states) | **POST** /requester/states | Returns the state of the job-id specified in the body payload.
 [**submit**](JobApi.md#submit) | **POST** /requester/submit | Submits a new job to the network.
 
+
+# **cancel**
+> CancelResponse cancel(cancel_request)
+
+Cancels the job with the job-id specified in the body payload.
+
+Cancels a job specified by `id` as long as that job belongs to `client_id`.  Returns the current jobstate after the cancel request has been processed.
+
+### Example
+```python
+from __future__ import print_function
+import time
+import bacalhau_apiclient
+from bacalhau_apiclient.rest import ApiException
+from pprint import pprint
+
+# create an instance of the API class
+api_instance = bacalhau_apiclient.JobApi()
+cancel_request = bacalhau_apiclient.CancelRequest() # CancelRequest |  
+
+try:
+    # Cancels the job with the job-id specified in the body payload.
+    api_response = api_instance.cancel(cancel_request)
+    pprint(api_response)
+except ApiException as e:
+    print("Exception when calling JobApi->cancel: %s\n" % e)
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **cancel_request** | [**CancelRequest**](CancelRequest.md)|   | 
+
+### Return type
+
+[**CancelResponse**](CancelResponse.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **events**
 > EventsResponse events(events_request)
@@ -96,54 +144,6 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**ListResponse**](ListResponse.md)
-
-### Authorization
-
-No authorization required
-
-### HTTP request headers
-
- - **Content-Type**: application/json
- - **Accept**: application/json
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **local_events**
-> LocalEventsResponse local_events(local_events_request)
-
-Returns the node's local events related to the job-id passed in the body payload. Useful for troubleshooting.
-
-Local events (e.g. Selected, BidAccepted, Verified) are useful to track the progress of a job.
-
-### Example
-```python
-from __future__ import print_function
-import time
-import bacalhau_apiclient
-from bacalhau_apiclient.rest import ApiException
-from pprint import pprint
-
-# create an instance of the API class
-api_instance = bacalhau_apiclient.JobApi()
-local_events_request = bacalhau_apiclient.LocalEventsRequest() # LocalEventsRequest |  
-
-try:
-    # Returns the node's local events related to the job-id passed in the body payload. Useful for troubleshooting.
-    api_response = api_instance.local_events(local_events_request)
-    pprint(api_response)
-except ApiException as e:
-    print("Exception when calling JobApi->local_events: %s\n" % e)
-```
-
-### Parameters
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **local_events_request** | [**LocalEventsRequest**](LocalEventsRequest.md)|   | 
-
-### Return type
-
-[**LocalEventsResponse**](LocalEventsResponse.md)
 
 ### Authorization
 

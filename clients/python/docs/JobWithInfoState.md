@@ -1,4 +1,4 @@
-# JobStatus
+# JobWithInfoState
 
 ## Properties
 Name | Type | Description | Notes

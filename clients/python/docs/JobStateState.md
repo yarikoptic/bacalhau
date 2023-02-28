@@ -1,4 +1,4 @@
-# JobEventType
+# JobStateState
 
 ## Properties
 Name | Type | Description | Notes

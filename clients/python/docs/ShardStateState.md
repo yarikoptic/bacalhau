@@ -1,4 +1,4 @@
-# JobLocalEventType
+# ShardStateState
 
 ## Properties
 Name | Type | Description | Notes

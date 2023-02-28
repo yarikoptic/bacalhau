@@ -1,4 +1,4 @@
-# JobEventRunOutput
+# ShardStateType
 
 ## Properties
 Name | Type | Description | Notes
