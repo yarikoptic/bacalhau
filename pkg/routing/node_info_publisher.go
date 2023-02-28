@@ -40,7 +40,9 @@ func NewNodeInfoPublisher(params NodeInfoPublisherParams) *NodeInfoPublisher {
 
 // Publish publishes the node info to the pubsub topic manually and won't wait for the background task to do it.
 func (n *NodeInfoPublisher) Publish(ctx context.Context) error {
-	return n.pubSub.Publish(ctx, n.nodeInfoProvider.GetNodeInfo(ctx))
+	nodeInfo := n.nodeInfoProvider.GetNodeInfo(ctx)
+	log.Info().Msgf("publishing node info for %s", nodeInfo.PeerInfo.ID)
+	return n.pubSub.Publish(ctx, nodeInfo)
 }
 
 func (n *NodeInfoPublisher) publishBackgroundTask() {

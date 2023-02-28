@@ -180,6 +180,7 @@ func NewNode(
 		NodeInfoProvider: nodeInfoProvider,
 		Interval:         nodeInfoPublisherInterval,
 	})
+	log.Info().Msgf("Node info publisher interval: %s", nodeInfoPublisherInterval)
 
 	// node info store that is used for both discovering compute nodes, as to find addresses of other nodes for routing requests.
 	nodeInfoStore := inmemory.NewNodeInfoStore(inmemory.NodeInfoStoreParams{

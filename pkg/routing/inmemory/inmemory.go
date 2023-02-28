@@ -46,6 +46,7 @@ func (r *NodeInfoStore) Add(ctx context.Context, nodeInfo model.NodeInfo) error 
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	log.Ctx(ctx).Info().Msgf("Adding node info for peer %s", nodeInfo.PeerInfo.ID)
 	// delete node from previous engines if it already exists to replace old engines with new ones if they've changed
 	existingNodeInfo, ok := r.nodeInfoMap[nodeInfo.PeerInfo.ID]
 	if ok {
