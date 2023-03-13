@@ -144,6 +144,7 @@ jobs:
                 name: Test Go
                 environment:
                   LOG_LEVEL: debug
+                  GOLOG_LOG_LEVEL: debug
                   TEST_BUILD_TAGS: << parameters.build_tags >>
                   TEST_PARALLEL_PACKAGES: 4 # This is set to 4 as xlarge instances have at least 8 CPUs, and we want to leave some CPU for the Docker instances
                 command: |
