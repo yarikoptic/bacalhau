@@ -133,6 +133,7 @@ func NewRequesterNode(
 		ID:                         host.ID().String(),
 		PublicKey:                  marshaledPublicKey,
 		Selector:                   selectionStrategy,
+		ComputeEndpoint:            computeProxy,
 		Store:                      jobStore,
 		Scheduler:                  scheduler,
 		Verifiers:                  verifiers,
